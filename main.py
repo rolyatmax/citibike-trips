@@ -91,10 +91,10 @@ def crunch_numbers():
     years = birthyears.keys()
     years.sort()
 
-    data = numpy.array([(station['lat'], station['long']) for station in stations.values()])
-    labels, error, nfound = kcluster(data, nclusters=30, dist='e',npass=10)
-
-    print('LABELS: %r' % labels)
+    print('Creating station file data')
+    f = open(data_dir + 'station_data.csv', 'wb')
+    writer = csv.writer(f, delimiter='\t')
+    [writer.writerow(s.values()) for s in stations.values()]
 
     print('\n')
     print('Header: %r' % headers[0])
