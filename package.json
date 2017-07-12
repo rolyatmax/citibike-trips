@@ -1,5 +1,27 @@
 {
+  "name": "citibike-trips",
+  "version": "0.0.2",
+  "scripts": {
+    "start": "budo index.js --live --open",
+    "lint": "standard"
+  },
   "dependencies": {
-    "fast-csv": "^2.4.0"
+    "budo": "^10.0.3",
+    "canvas-fit": "^1.5.0",
+    "canvas-orbit-camera": "^1.0.2",
+    "eslint": "^4.2.0",
+    "fast-csv": "^2.4.0",
+    "gl-mat4": "^1.1.4",
+    "glslify": "^6.1.0",
+    "regl": "^1.3.0",
+    "standard": "^10.0.2"
+  },
+  "browserify": {
+    "transform": [
+      "glslify"
+    ]
+  },
+  "eslintConfig": {
+    "extends": ["standard", "standard-jsx"]
   }
 }
