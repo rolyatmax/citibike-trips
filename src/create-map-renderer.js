@@ -4,13 +4,25 @@ module.exports = function createMapRenderer (regl, lines) {
   const globalLineRender = regl({
     vert: glslify.file('./map.vert'),
     frag: glslify.file('./map.frag'),
-    primitive: 'line strip'
+    primitive: 'line strip',
+    blend: {
+      enable: true,
+      func: {
+        srcRGB: 'src alpha',
+        srcAlpha: 1,
+        dstRGB: 'one minus src alpha',
+        dstAlpha: 1
+      },
+      equation: {
+        rgb: 'add',
+        alpha: 'add'
+      },
+      color: [0, 0, 0, 0]
+    }
   })
 
   const drawCalls = lines.map((points, i) => {
     const colors = points.map(() => [0.9, 0.9, 0.9, 1])
-
-    console.log('drawcallsssss', i, '/', lines.length)
     return regl({
       attributes: {
         position: points,

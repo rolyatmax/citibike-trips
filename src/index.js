@@ -9,12 +9,11 @@ const createTripsRenderer = require('./create-trips-renderer')
 const createMapRenderer = require('./create-map-renderer')
 const setupDatGUI = require('./setup-dat-gui')
 
-const canvas = document.createElement('canvas')
+const canvas = document.body.appendChild(document.createElement('canvas'))
 const camera = createCamera(canvas)
 const regl = createRegl(canvas)
 
 window.addEventListener('resize', fit(canvas), false)
-document.body.appendChild(canvas)
 
 const nycStreetsFile = './cleaned/community-districts' // './cleaned/nyc-streets'
 const tripsFile = './cleaned/trips-20160910-11.csv'
@@ -38,14 +37,16 @@ Promise.all([
 
   const settings = setupDatGUI({
     pointSize: [1.2, 0.5, 10, 0.1],
-    arcHeight: [1, 0, 25, 1]
+    arcHeight: [1, 0, 6, 0.5],
+    speed: [15, 1, 50, 1]
   }, setup)
 
-  let startTime, renderPoints, renderMap
+  let startTime, startFrom, renderPoints, renderMap
+  renderPoints = createTripsRenderer(regl, points)
+  renderMap = createMapRenderer(regl, lines)
   function setup () {
     startTime = 0
-    renderPoints = createTripsRenderer(regl, points)
-    renderMap = createMapRenderer(regl, lines)
+    startFrom = 3600 * 9 // start at 9am
   }
 
   const globalRender = regl({
@@ -60,8 +61,8 @@ Promise.all([
       view: () => camera.view(),
       pointSize: regl.prop('pointSize'),
       arcHeight: regl.prop('arcHeight'),
-      circleSize: 5,
-      elapsed: ({ time }, { startTime }) => (time - startTime) * 1000
+      elapsed: regl.prop('elapsed'),
+      speed: regl.prop('speed')
     }
   })
 
@@ -74,10 +75,12 @@ Promise.all([
       depth: 1
     })
     camera.tick()
+    const elapsed = (time - startTime) * 1000 + startFrom
     globalRender({
       pointSize: settings.pointSize,
       arcHeight: settings.arcHeight,
-      startTime: startTime
+      elapsed: elapsed,
+      speed: settings.speed / 30
     }, () => {
       renderPoints()
       renderMap()
