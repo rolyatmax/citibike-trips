@@ -22,7 +22,7 @@ module.exports = function createMapRenderer (regl, lines) {
   })
 
   const drawCalls = lines.map((points, i) => {
-    const colors = points.map(() => [0.9, 0.9, 0.9, 1])
+    const colors = points.map(() => [0.85, 0.85, 0.85, 1])
     return regl({
       attributes: {
         position: points,
