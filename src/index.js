@@ -77,8 +77,6 @@ Promise.all([
   const subscriberPointSize = createSpring(dampening, stiffness, getValue(['subscriber', 'showPoints'], MAX_PT_SIZE))
   const nonSubscriberPointSize = createSpring(dampening, stiffness, getValue(['nonSubscriber', 'showPoints'], MAX_PT_SIZE))
 
-  const pointSize = createSpring(dampening, stiffness, settings.showPoints ? MAX_PT_SIZE : 0)
-
   let renderBySubscriber = {}
   for (let trip of trips) {
     trip.startPosition = projectCoords(trip.start_station)
@@ -114,17 +112,49 @@ Promise.all([
   window.camera = camera
   camera.zoomSpeed = 4
   camera.distanceLimits = [0.05, 1.03]
-  const center = projectCoords([-73.990891, 40.728729]) // cooper union
-  center.push(0)
-  camera.lookAt([center[0] - 0.15, center[1] + 0.15, -0.2], center, [0.52, -0.11, -99])
+
+  const [fX, fY] = projectCoords([-73.990891, 40.728729]) // cooper union
+  const center = [fX - 0.15, fY + 0.15, -0.2] // i feel like these are misnamed in the 3d controls lib
+  const eye = [fX, fY, 0] // i feel like these are misnamed in the 3d controls lib
+
+  const cameraX = createSpring(0.005, 1.5, center[0])
+  const cameraY = createSpring(0.005, 1.5, center[1])
+  const cameraZ = createSpring(0.005, 1.5, center[2])
+
+  const focusX = createSpring(0.005, 1.5, fX)
+  const focusY = createSpring(0.005, 1.5, fY)
+
+  camera.lookAt(
+    center,
+    eye,
+    [0.52, -0.11, -99]
+  )
+
+  function setRandomCameraPosition () {
+    const newFocusX = fX + (Math.random() - 0.5) * 0.2
+    const newFocusY = fY + (Math.random() - 0.5) * 0.2
+    focusX.updateValue(newFocusX)
+    focusY.updateValue(newFocusY)
+
+    cameraX.updateValue(newFocusX + Math.random() - 0.5)
+    cameraY.updateValue(newFocusY + Math.random() - 0.5)
+    cameraZ.updateValue(Math.random() * -0.5)
+  }
+
+  setRandomCameraPosition()
+  setInterval(setRandomCameraPosition, 10000)
+
+  removeLoader()
   regl.frame(({ time }) => {
-    if (!startTime) removeLoader()
     startTime = startTime || time
     regl.clear({
       color: BG_COLOR,
       depth: 1
     })
     camera.tick()
+    camera.up = [camera.up[0], camera.up[1], -999]
+    camera.center = [cameraX.tick(), cameraY.tick(), cameraZ.tick()]
+    camera.eye = [focusX.tick(), focusY.tick(), 0]
 
     subscriberArcHeight.updateValue(getValue(['subscriber', 'curvedPaths'], MAX_ARC_HEIGHT))
     nonSubscriberArcHeight.updateValue(getValue(['nonSubscriber', 'curvedPaths'], MAX_ARC_HEIGHT))
@@ -137,7 +167,6 @@ Promise.all([
     const elapsed = ((time - startTime) * settings.speed + startFrom) % loopAtTime
     renderElapsedTime(elapsed)
     globalRender({
-      pointSize: pointSize.tick(),
       elapsed: elapsed,
       center: camera.center
     }, () => {
