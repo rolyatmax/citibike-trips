@@ -2,8 +2,10 @@
 
 const createRegl = require('regl')
 const fit = require('canvas-fit')
+const css = require('dom-css')
 const mat4 = require('gl-mat4')
-const createCamera = require('canvas-orbit-camera')
+const createCamera = require('3d-view-controls')
+const showLoader = require('./loader')
 const createProjection = require('./create-projection')
 const createTripsRenderer = require('./create-trips-renderer')
 const createMapRenderer = require('./create-map-renderer')
@@ -17,6 +19,11 @@ const {
   mungeStationsIntoTrip
 } = require('./helpers')
 
+const backgroundColor = [0.22, 0.22, 0.22, 1]
+const rgba = `rgba(${backgroundColor.slice(0, 3).map(v => v * 256 | 0).join(',')}, ${backgroundColor[3]})`
+css(document.body, 'background-color', rgba)
+const removeLoader = showLoader(document.body)
+
 const canvas = document.body.appendChild(document.createElement('canvas'))
 const camera = createCamera(canvas)
 const regl = createRegl(canvas)
@@ -25,7 +32,7 @@ const renderElapsedTime = createElapsedTimeView(document.body.appendChild(docume
 
 window.addEventListener('resize', fit(canvas), false)
 
-const nycStreetsFile = './cleaned/community-districts' // './cleaned/nyc-streets'
+const nycStreetsFile = './cleaned/nyc-streets'
 const tripsFile = './cleaned/trips-20160910-11.csv'
 const stationsFile = './cleaned/stations.csv'
 
@@ -33,54 +40,65 @@ Promise.all([
   fetch(nycStreetsFile).then(d => d.text()).then(parseLines),
   fetch(tripsFile).then(d => d.text()).then(parseTripsCSV),
   fetch(stationsFile).then(d => d.text()).then(parseStationsCSV)
-]).then(function start ([coordinates, trips, stations]) {
+]).then(function onLoad ([coordinates, trips, stations]) {
   trips = mungeStationsIntoTrip(trips, stations)
+
+  const settings = setupDatGUI({
+    pointSize: [3, 0.5, 4, 0.1],
+    arcHeight: [2.5, 0, 6, 0.5],
+    speed: [60 * 15, 1, 7000, 1],
+    subscriber: [true],
+    nonSubscriber: [true]
+  }, setup)
 
   const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
   const lines = coordinates.map(points => points.map(projectCoords))
-  const points = trips.map(trip => {
-    return Object.assign({}, trip, {
-      startPosition: projectCoords(trip.start_station),
-      endPosition: projectCoords(trip.end_station)
-    })
-  })
-
-  const settings = setupDatGUI({
-    pointSize: [2, 0.5, 3, 0.1],
-    arcHeight: [1.8, 0, 6, 0.5],
-    speed: [60 * 5, 1, 7000, 1]
-  }, setup)
-
-  let startTime, startFrom, renderPoints, renderMap
-  renderPoints = createTripsRenderer(regl, points)
+  let startTime, startFrom, renderMap
+  let renderBySubscriber = {}
+  for (let trip of trips) {
+    trip.startPosition = projectCoords(trip.start_station)
+    trip.endPosition = projectCoords(trip.end_station)
+    renderBySubscriber[trip.subscriber] = renderBySubscriber[trip.subscriber] || []
+    renderBySubscriber[trip.subscriber].push(trip)
+  }
+  for (let k in renderBySubscriber) {
+    renderBySubscriber[k] = createTripsRenderer(regl, renderBySubscriber[k])
+  }
   renderMap = createMapRenderer(regl, lines)
   function setup () {
     startTime = 0
-    startFrom = 3600 * 0 // start at 9am
+    startFrom = 0
   }
 
   const globalRender = regl({
     uniforms: {
       projection: ({viewportWidth, viewportHeight}) => (
         mat4.perspective([],
-          Math.PI / 2,
+          Math.PI / 4,
           viewportWidth / viewportHeight,
           0.01,
-          1000)
+          10)
       ),
-      view: () => camera.view(),
+      view: () => camera.matrix,
       pointSize: regl.prop('pointSize'),
       arcHeight: regl.prop('arcHeight'),
-      elapsed: regl.prop('elapsed')
+      elapsed: regl.prop('elapsed'),
+      center: regl.prop('center')
     }
   })
 
   setup()
-  camera.lookAt([1, 0.8, -0.15], [1, 1, 0], [0.5, -0.5, 1])
+  window.camera = camera
+  camera.zoomSpeed = 4
+  camera.distanceLimits = [0.05, 1.03]
+  const center = projectCoords([-73.990891, 40.728729]) // cooper union
+  center.push(0)
+  camera.lookAt([center[0] - 0.15, center[1] + 0.15, -0.2], center, [0.52, -0.11, -99])
   regl.frame(({ time }) => {
+    if (!startTime) removeLoader()
     startTime = startTime || time
     regl.clear({
-      color: [0.22, 0.22, 0.22, 1],
+      color: backgroundColor,
       depth: 1
     })
     camera.tick()
@@ -90,10 +108,12 @@ Promise.all([
     globalRender({
       pointSize: settings.pointSize,
       arcHeight: settings.arcHeight,
-      elapsed: elapsed
+      elapsed: elapsed,
+      center: camera.center
     }, () => {
-      renderPoints()
       renderMap()
+      if (settings.subscriber) renderBySubscriber[true]()
+      if (settings.nonSubscriber) renderBySubscriber[false]()
     })
   })
 })

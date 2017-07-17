@@ -1,9 +1,9 @@
 const glslify = require('glslify')
 const vec2 = require('gl-vec2')
+const lerp = require('lerp')
 const { getSeconds } = require('./helpers')
 
 module.exports = function createTripsRenderer (regl, points) {
-  // points = points.slice(0, 70000)
   const drawTripPoints = regl({
     vert: glslify.file('./trips.vert'),
     frag: glslify.file('./trips.frag'),
@@ -21,6 +21,16 @@ module.exports = function createTripsRenderer (regl, points) {
     primitive: 'point'
   })
 
+  const startColor = [235, 127, 0]
+  const endColor = [172, 240, 242]
+  function getColor (t) {
+    return [
+      lerp(startColor[0], endColor[0], t) / 255,
+      lerp(startColor[1], endColor[1], t) / 255,
+      lerp(startColor[2], endColor[2], t) / 255
+    ]
+  }
+
   function getPosition (start, end, t) {
     const position = vec2.lerp([], start, end, t)
     const z = Math.sin(t * Math.PI) * -0.1 * vec2.distance(start, end)
@@ -32,11 +42,22 @@ module.exports = function createTripsRenderer (regl, points) {
   // then the next line's start, and then end - we have to reorg these points
   // to work with the shader
   const linesPoints = []
+  const linesColors = []
+  const linesStartTimes = []
+  const linesDurations = []
   points.forEach(p => {
-    const arcPoints = 18
+    const arcPoints = 12
+    const startTime = getSeconds(p.start_ts)
     for (let j = 0; j < arcPoints; j++) {
-      linesPoints.push(Object.assign({ position: getPosition(p.startPosition, p.endPosition, j / arcPoints) }, p))
-      linesPoints.push(Object.assign({ position: getPosition(p.startPosition, p.endPosition, (j + 1) / arcPoints) }, p))
+      linesPoints.push(getPosition(p.startPosition, p.endPosition, j / arcPoints))
+      linesColors.push(getColor(j / arcPoints))
+      linesStartTimes.push(startTime)
+      linesDurations.push(p.duration)
+
+      linesPoints.push(getPosition(p.startPosition, p.endPosition, (j + 1) / arcPoints))
+      linesColors.push(getColor((j + 1) / arcPoints))
+      linesStartTimes.push(startTime)
+      linesDurations.push(p.duration)
     }
   })
 
@@ -47,32 +68,30 @@ module.exports = function createTripsRenderer (regl, points) {
     frag: glslify.file('./trip-path.frag'),
 
     attributes: {
-      position: linesPoints.map(p => p.position),
-      color: linesPoints.map(p => p.subscriber ? [0.7, 0.7, 1, 0.3] : [1, 0.7, 0.7, 0.3]),
-      startTime: linesPoints.map(p => getSeconds(p.start_ts)), // make this the actual start
-      duration: linesPoints.map(p => p.duration)
+      position: linesPoints,
+      color: linesColors,
+      startTime: linesStartTimes,
+      duration: linesDurations
     },
 
     blend: {
       enable: true,
       func: {
         srcRGB: 'src alpha',
-        srcAlpha: 1,
         dstRGB: 'one minus src alpha',
-        dstAlpha: 1
+        srcAlpha: 1,
+        dstAlpha: 'one minus src alpha'
       },
       equation: {
         rgb: 'add',
         alpha: 'add'
-      },
-      color: [0, 0, 0, 0]
+      }
     },
 
     count: linesPoints.length,
 
     primitive: 'lines'
   })
-
   return () => {
     drawTripPoints()
     drawTripPaths()

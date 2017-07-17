@@ -9,14 +9,14 @@ module.exports = {
 
 function extent (lines) {
   let minLon, minLat, maxLon, maxLat
-  lines.forEach(points => {
-    points.forEach(pt => {
+  for (let points of lines) {
+    for (let pt of points) {
       if (!minLon || pt[0] < minLon) minLon = pt[0]
       if (!maxLon || pt[0] > maxLon) maxLon = pt[0]
       if (!minLat || pt[1] < minLat) minLat = pt[1]
       if (!maxLat || pt[1] > maxLat) maxLat = pt[1]
-    })
-  })
+    }
+  }
   return [minLon, minLat, maxLon, maxLat]
 }
 
@@ -71,12 +71,11 @@ function parseStationsCSV (data) {
 }
 
 function mungeStationsIntoTrip (trips, stations) {
-  return trips.map(trip => {
-    return Object.assign({}, trip, {
-      start_station: getLatLonFromStation(stations[trip.start_station]),
-      end_station: getLatLonFromStation(stations[trip.end_station])
-    })
-  })
+  for (let trip of trips) {
+    trip.start_station = getLatLonFromStation(stations[trip.start_station])
+    trip.end_station = getLatLonFromStation(stations[trip.end_station])
+  }
+  return trips
 }
 
 function getLatLonFromStation (station) {

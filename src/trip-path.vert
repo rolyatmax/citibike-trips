@@ -1,5 +1,5 @@
 attribute vec3 position;
-attribute vec4 color;
+attribute vec3 color;
 attribute float startTime;
 attribute float duration;
 
@@ -13,7 +13,7 @@ uniform float arcHeight;
 void main() {
   float middle = startTime + duration / 2.0;
   float endTime = startTime + duration;
-  float buf = 20.0;
+  float buf = 200.0;
   float t;
   if (elapsed < middle) {
     t = smoothstep(startTime - buf / 2.0, middle, elapsed);
@@ -25,6 +25,6 @@ void main() {
     w = 0.0;
   }
   float z = position.z * arcHeight;
-  fragColor = vec4(color.rgb, t / 2.0);
+  fragColor = vec4(color.rgb, t / 1.3);
   gl_Position = projection * view * vec4(position.xy, z, w);
 }

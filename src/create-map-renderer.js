@@ -1,10 +1,25 @@
 const glslify = require('glslify')
 
 module.exports = function createMapRenderer (regl, lines) {
-  const globalLineRender = regl({
+  const lineSegments = []
+  for (let line of lines) {
+    for (let j = 0; j < line.length - 1; j++) {
+      lineSegments.push(line[j])
+      lineSegments.push(line[j + 1])
+    }
+  }
+
+  const renderMap = regl({
     vert: glslify.file('./map.vert'),
     frag: glslify.file('./map.frag'),
-    primitive: 'line strip',
+    attributes: {
+      position: lineSegments
+    },
+    count: lineSegments.length,
+    uniforms: {
+      color: [0.75, 0.75, 0.75]
+    },
+    primitive: 'lines',
     blend: {
       enable: true,
       func: {
@@ -16,23 +31,9 @@ module.exports = function createMapRenderer (regl, lines) {
       equation: {
         rgb: 'add',
         alpha: 'add'
-      },
-      color: [0, 0, 0, 0]
+      }
     }
   })
 
-  const drawCalls = lines.map((points, i) => {
-    const colors = points.map(() => [0.85, 0.85, 0.85, 1])
-    return regl({
-      attributes: {
-        position: points,
-        color: colors
-      },
-      count: points.length
-    })
-  })
-
-  return function renderMap () {
-    globalLineRender(() => drawCalls.forEach(render => render()))
-  }
+  return renderMap
 }
