@@ -3,6 +3,7 @@
 const createRegl = require('regl')
 const fit = require('canvas-fit')
 const css = require('dom-css')
+const { createSpring } = require('spring-animator')
 const mat4 = require('gl-mat4')
 const createCamera = require('3d-view-controls')
 const showLoader = require('./loader')
@@ -19,8 +20,10 @@ const {
   mungeStationsIntoTrip
 } = require('./helpers')
 
-const backgroundColor = [0.22, 0.22, 0.22, 1]
-const rgba = `rgba(${backgroundColor.slice(0, 3).map(v => v * 256 | 0).join(',')}, ${backgroundColor[3]})`
+const MAX_ARC_HEIGHT = 2.5
+const MAX_PT_SIZE = 3
+const BG_COLOR = [0.22, 0.22, 0.22, 1]
+const rgba = `rgba(${BG_COLOR.slice(0, 3).map(v => v * 256 | 0).join(',')}, ${BG_COLOR[3]})`
 css(document.body, 'background-color', rgba)
 const removeLoader = showLoader(document.body)
 
@@ -44,9 +47,10 @@ Promise.all([
   trips = mungeStationsIntoTrip(trips, stations)
 
   const settings = setupDatGUI({
-    pointSize: [3, 0.5, 4, 0.1],
-    arcHeight: [2.5, 0, 6, 0.5],
     speed: [60 * 15, 1, 7000, 1],
+    showPoints: [true],
+    showPaths: [true],
+    curvedPaths: [true],
     subscriber: [true],
     nonSubscriber: [true]
   }, setup)
@@ -54,6 +58,27 @@ Promise.all([
   const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
   const lines = coordinates.map(points => points.map(projectCoords))
   let startTime, startFrom, renderMap
+
+  const dampening = 0.1 // .68
+  const stiffness = 1
+
+  // ughhhhh this is ugly
+  function getValue (conditions, max) {
+    for (let condition of conditions) {
+      if (!settings[condition]) return 0
+    }
+    return max
+  }
+
+  const subscriberArcHeight = createSpring(dampening, stiffness, getValue(['subscriber', 'curvedPaths'], MAX_ARC_HEIGHT))
+  const nonSubscriberArcHeight = createSpring(dampening, stiffness, getValue(['nonSubscriber', 'curvedPaths'], MAX_ARC_HEIGHT))
+  const subscriberPathAlpha = createSpring(dampening, stiffness, getValue(['subscriber', 'showPaths'], 1))
+  const nonSubscriberPathAlpha = createSpring(dampening, stiffness, getValue(['nonSubscriber', 'showPaths'], 1))
+  const subscriberPointSize = createSpring(dampening, stiffness, getValue(['subscriber', 'showPoints'], MAX_PT_SIZE))
+  const nonSubscriberPointSize = createSpring(dampening, stiffness, getValue(['nonSubscriber', 'showPoints'], MAX_PT_SIZE))
+
+  const pointSize = createSpring(dampening, stiffness, settings.showPoints ? MAX_PT_SIZE : 0)
+
   let renderBySubscriber = {}
   for (let trip of trips) {
     trip.startPosition = projectCoords(trip.start_station)
@@ -80,8 +105,6 @@ Promise.all([
           10)
       ),
       view: () => camera.matrix,
-      pointSize: regl.prop('pointSize'),
-      arcHeight: regl.prop('arcHeight'),
       elapsed: regl.prop('elapsed'),
       center: regl.prop('center')
     }
@@ -98,22 +121,38 @@ Promise.all([
     if (!startTime) removeLoader()
     startTime = startTime || time
     regl.clear({
-      color: backgroundColor,
+      color: BG_COLOR,
       depth: 1
     })
     camera.tick()
+
+    subscriberArcHeight.updateValue(getValue(['subscriber', 'curvedPaths'], MAX_ARC_HEIGHT))
+    nonSubscriberArcHeight.updateValue(getValue(['nonSubscriber', 'curvedPaths'], MAX_ARC_HEIGHT))
+    subscriberPathAlpha.updateValue(getValue(['subscriber', 'showPaths'], 1))
+    nonSubscriberPathAlpha.updateValue(getValue(['nonSubscriber', 'showPaths'], 1))
+    subscriberPointSize.updateValue(getValue(['subscriber', 'showPoints'], MAX_PT_SIZE))
+    nonSubscriberPointSize.updateValue(getValue(['nonSubscriber', 'showPoints'], MAX_PT_SIZE))
+
     const loopAtTime = 2 * 24 * 60 * 60
     const elapsed = ((time - startTime) * settings.speed + startFrom) % loopAtTime
     renderElapsedTime(elapsed)
     globalRender({
-      pointSize: settings.pointSize,
-      arcHeight: settings.arcHeight,
+      pointSize: pointSize.tick(),
       elapsed: elapsed,
       center: camera.center
     }, () => {
       renderMap()
-      if (settings.subscriber) renderBySubscriber[true]()
-      if (settings.nonSubscriber) renderBySubscriber[false]()
+
+      renderBySubscriber[true]({
+        pathAlpha: subscriberPathAlpha.tick(),
+        arcHeight: subscriberArcHeight.tick(),
+        pointSize: subscriberPointSize.tick()
+      })
+      renderBySubscriber[false]({
+        pathAlpha: nonSubscriberPathAlpha.tick(),
+        arcHeight: nonSubscriberArcHeight.tick(),
+        pointSize: nonSubscriberPointSize.tick()
+      })
     })
   })
 })

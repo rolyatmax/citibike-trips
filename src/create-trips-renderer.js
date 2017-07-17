@@ -16,6 +16,11 @@ module.exports = function createTripsRenderer (regl, points) {
       duration: points.map(p => p.duration)
     },
 
+    uniforms: {
+      arcHeight: regl.prop('arcHeight'),
+      pointSize: regl.prop('pointSize')
+    },
+
     count: points.length,
 
     primitive: 'point'
@@ -46,7 +51,7 @@ module.exports = function createTripsRenderer (regl, points) {
   const linesStartTimes = []
   const linesDurations = []
   points.forEach(p => {
-    const arcPoints = 12
+    const arcPoints = 18
     const startTime = getSeconds(p.start_ts)
     for (let j = 0; j < arcPoints; j++) {
       linesPoints.push(getPosition(p.startPosition, p.endPosition, j / arcPoints))
@@ -74,6 +79,11 @@ module.exports = function createTripsRenderer (regl, points) {
       duration: linesDurations
     },
 
+    uniforms: {
+      pathAlpha: regl.prop('pathAlpha'),
+      arcHeight: regl.prop('arcHeight')
+    },
+
     blend: {
       enable: true,
       func: {
@@ -92,8 +102,8 @@ module.exports = function createTripsRenderer (regl, points) {
 
     primitive: 'lines'
   })
-  return () => {
-    drawTripPoints()
-    drawTripPaths()
+  return ({ pathAlpha, arcHeight, pointSize }) => {
+    drawTripPoints({ arcHeight, pointSize })
+    drawTripPaths({ pathAlpha, arcHeight })
   }
 }
