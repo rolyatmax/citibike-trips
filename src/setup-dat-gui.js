@@ -15,8 +15,8 @@ module.exports = function guiSettings (settings, onChange) {
     }
   }
   if (onChange) {
-    const redraw = onChange
-    gui.add({ redraw }, 'redraw')
+    const restart = onChange
+    gui.add({ restart }, 'restart')
   }
   return settingsObj
 }

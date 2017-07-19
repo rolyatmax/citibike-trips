@@ -4,6 +4,7 @@ attribute float startTime;
 attribute float duration;
 
 varying vec4 fragColor;
+varying float discardMe;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -22,10 +23,14 @@ void main() {
     t = 1.0 - smoothstep(middle, endTime + buf, elapsed);
   }
   float w = 1.0;
+  discardMe = 0.0;
+  float alpha = t / 1.3 * pathAlpha;
   if (t == 0.0) {
     w = 0.0;
+    discardMe = 1.0;
+    alpha = 0.0;
   }
   float z = position.z * arcHeight;
-  fragColor = vec4(color.rgb, t / 1.3 * pathAlpha);
+  fragColor = vec4(color.rgb, alpha);
   gl_Position = projection * view * vec4(position.xy, z, w);
 }

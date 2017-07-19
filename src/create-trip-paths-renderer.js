@@ -3,29 +3,7 @@ const vec2 = require('gl-vec2')
 const lerp = require('lerp')
 const { getSeconds } = require('./helpers')
 
-module.exports = function createTripsRenderer (regl, points) {
-  const drawTripPoints = regl({
-    vert: glslify.file('./trips.vert'),
-    frag: glslify.file('./trips.frag'),
-
-    attributes: {
-      startPosition: points.map(p => p.startPosition),
-      endPosition: points.map(p => p.endPosition),
-      color: points.map(p => p.subscriber ? [0.7, 0.7, 1, 1] : [1, 0.7, 0.7, 1]),
-      startTime: points.map(p => getSeconds(p.start_ts)),
-      duration: points.map(p => p.duration)
-    },
-
-    uniforms: {
-      arcHeight: regl.prop('arcHeight'),
-      pointSize: regl.prop('pointSize')
-    },
-
-    count: points.length,
-
-    primitive: 'point'
-  })
-
+module.exports = function createTripPathsRenderer (regl, points) {
   const startColor = [235, 127, 0]
   const endColor = [172, 240, 242]
   function getColor (t) {
@@ -51,7 +29,7 @@ module.exports = function createTripsRenderer (regl, points) {
   const linesStartTimes = []
   const linesDurations = []
   points.forEach(p => {
-    const arcPoints = 18
+    const arcPoints = 25
     const startTime = getSeconds(p.start_ts)
     for (let j = 0; j < arcPoints; j++) {
       linesPoints.push(getPosition(p.startPosition, p.endPosition, j / arcPoints))
@@ -68,7 +46,7 @@ module.exports = function createTripsRenderer (regl, points) {
 
   console.log('line segment points', linesPoints.length)
 
-  const drawTripPaths = regl({
+  return regl({
     vert: glslify.file('./trip-path.vert'),
     frag: glslify.file('./trip-path.frag'),
 
@@ -88,9 +66,9 @@ module.exports = function createTripsRenderer (regl, points) {
       enable: true,
       func: {
         srcRGB: 'src alpha',
-        dstRGB: 'one minus src alpha',
+        dstRGB: 1,
         srcAlpha: 1,
-        dstAlpha: 'one minus src alpha'
+        dstAlpha: 1
       },
       equation: {
         rgb: 'add',
@@ -102,8 +80,4 @@ module.exports = function createTripsRenderer (regl, points) {
 
     primitive: 'lines'
   })
-  return ({ pathAlpha, arcHeight, pointSize }) => {
-    drawTripPoints({ arcHeight, pointSize })
-    drawTripPaths({ pathAlpha, arcHeight })
-  }
 }

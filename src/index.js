@@ -8,7 +8,9 @@ const mat4 = require('gl-mat4')
 const createCamera = require('3d-view-controls')
 const showLoader = require('./loader')
 const createProjection = require('./create-projection')
-const createTripsRenderer = require('./create-trips-renderer')
+const createTripPointsRenderer = require('./create-trip-points-renderer')
+const createTripPathsRenderer = require('./create-trip-paths-renderer')
+// const createTripArrivalsRenderer = require('./create-trip-arrivals-renderer')
 const createMapRenderer = require('./create-map-renderer')
 const createElapsedTimeView = require('./create-elapsed-time-view')
 const setupDatGUI = require('./setup-dat-gui')
@@ -49,6 +51,7 @@ Promise.all([
   const settings = setupDatGUI({
     speed: [60 * 15, 1, 7000, 1],
     showPoints: [true],
+    // showArrivals: [true],
     showPaths: [true],
     curvedPaths: [true],
     subscriber: [true],
@@ -57,9 +60,10 @@ Promise.all([
 
   const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
   const lines = coordinates.map(points => points.map(projectCoords))
-  let startTime, startFrom, renderMap
+  let renderMap
+  let elapsed = 0
 
-  const dampening = 0.1 // .68
+  const dampening = 0.1
   const stiffness = 1
 
   // ughhhhh this is ugly
@@ -76,6 +80,8 @@ Promise.all([
   const nonSubscriberPathAlpha = createSpring(dampening, stiffness, getValue(['nonSubscriber', 'showPaths'], 1))
   const subscriberPointSize = createSpring(dampening, stiffness, getValue(['subscriber', 'showPoints'], MAX_PT_SIZE))
   const nonSubscriberPointSize = createSpring(dampening, stiffness, getValue(['nonSubscriber', 'showPoints'], MAX_PT_SIZE))
+  // const subscriberArrivalAlpha = createSpring(dampening, stiffness, getValue(['subscriber', 'showArrivals'], 1))
+  // const nonSubscriberArrivalAlpha = createSpring(dampening, stiffness, getValue(['nonSubscriber', 'showArrivals'], 1))
 
   let renderBySubscriber = {}
   for (let trip of trips) {
@@ -85,12 +91,19 @@ Promise.all([
     renderBySubscriber[trip.subscriber].push(trip)
   }
   for (let k in renderBySubscriber) {
-    renderBySubscriber[k] = createTripsRenderer(regl, renderBySubscriber[k])
+    // too intensive to render trip arrivals at the moment
+    // const drawTripArrivals = createTripArrivalsRenderer(regl, renderBySubscriber[k])
+    const drawTripPoints = createTripPointsRenderer(regl, renderBySubscriber[k])
+    const drawTripPaths = createTripPathsRenderer(regl, renderBySubscriber[k])
+    renderBySubscriber[k] = function renderTrip ({ arcHeight, pointSize, pathAlpha, arrivalAlpha }) {
+      drawTripPoints({ arcHeight, pointSize })
+      drawTripPaths({ pathAlpha, arcHeight })
+      // drawTripArrivals({ arrivalAlpha })
+    }
   }
   renderMap = createMapRenderer(regl, lines)
   function setup () {
-    startTime = 0
-    startFrom = 0
+    elapsed = 0
   }
 
   const globalRender = regl({
@@ -142,19 +155,23 @@ Promise.all([
   }
 
   setRandomCameraPosition()
-  setInterval(setRandomCameraPosition, 10000)
+  // setInterval(setRandomCameraPosition, 10000)
 
   removeLoader()
+  const loopAtTime = 2 * 24 * 60 * 60
+  let lastTime = 0
   regl.frame(({ time }) => {
-    startTime = startTime || time
+    const timeDiff = (time - lastTime) * settings.speed
+    elapsed = (elapsed + timeDiff) % loopAtTime
+    lastTime = time
     regl.clear({
       color: BG_COLOR,
       depth: 1
     })
     camera.tick()
     camera.up = [camera.up[0], camera.up[1], -999]
-    camera.center = [cameraX.tick(), cameraY.tick(), cameraZ.tick()]
-    camera.eye = [focusX.tick(), focusY.tick(), 0]
+    // camera.center = [cameraX.tick(), cameraY.tick(), cameraZ.tick()]
+    // camera.eye = [focusX.tick(), focusY.tick(), 0]
 
     subscriberArcHeight.updateValue(getValue(['subscriber', 'curvedPaths'], MAX_ARC_HEIGHT))
     nonSubscriberArcHeight.updateValue(getValue(['nonSubscriber', 'curvedPaths'], MAX_ARC_HEIGHT))
@@ -162,9 +179,9 @@ Promise.all([
     nonSubscriberPathAlpha.updateValue(getValue(['nonSubscriber', 'showPaths'], 1))
     subscriberPointSize.updateValue(getValue(['subscriber', 'showPoints'], MAX_PT_SIZE))
     nonSubscriberPointSize.updateValue(getValue(['nonSubscriber', 'showPoints'], MAX_PT_SIZE))
+    // subscriberArrivalAlpha.updateValue(getValue(['subscriber', 'showArrivals'], 1))
+    // nonSubscriberArrivalAlpha.updateValue(getValue(['nonSubscriber', 'showArrivals'], 1))
 
-    const loopAtTime = 2 * 24 * 60 * 60
-    const elapsed = ((time - startTime) * settings.speed + startFrom) % loopAtTime
     renderElapsedTime(elapsed)
     globalRender({
       elapsed: elapsed,
@@ -175,12 +192,14 @@ Promise.all([
       renderBySubscriber[true]({
         pathAlpha: subscriberPathAlpha.tick(),
         arcHeight: subscriberArcHeight.tick(),
-        pointSize: subscriberPointSize.tick()
+        pointSize: subscriberPointSize.tick(),
+        // arrivalAlpha: subscriberArrivalAlpha.tick()
       })
       renderBySubscriber[false]({
         pathAlpha: nonSubscriberPathAlpha.tick(),
         arcHeight: nonSubscriberArcHeight.tick(),
-        pointSize: nonSubscriberPointSize.tick()
+        pointSize: nonSubscriberPointSize.tick(),
+        // arrivalAlpha: nonSubscriberArrivalAlpha.tick()
       })
     })
   })
