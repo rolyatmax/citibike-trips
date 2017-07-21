@@ -62,20 +62,6 @@ module.exports = function createTripPathsRenderer (regl, points) {
       arcHeight: regl.prop('arcHeight')
     },
 
-    blend: {
-      enable: true,
-      func: {
-        srcRGB: 'src alpha',
-        dstRGB: 1,
-        srcAlpha: 1,
-        dstAlpha: 1
-      },
-      equation: {
-        rgb: 'add',
-        alpha: 'add'
-      }
-    },
-
     count: linesPoints.length,
 
     primitive: 'lines'

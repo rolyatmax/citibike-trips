@@ -30,20 +30,6 @@ module.exports = function createTripArrivalsRenderer (regl, points) {
       radius: 0.0001
     },
 
-    blend: {
-      enable: true,
-      func: {
-        srcRGB: 'src alpha',
-        dstRGB: 1,
-        srcAlpha: 1,
-        dstAlpha: 1
-      },
-      equation: {
-        rgb: 'add',
-        alpha: 'add'
-      }
-    },
-
     count: positions.length,
 
     primitive: 'triangle fan'

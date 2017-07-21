@@ -118,6 +118,19 @@ Promise.all([
       view: () => camera.matrix,
       elapsed: regl.prop('elapsed'),
       center: regl.prop('center')
+    },
+    blend: {
+      enable: true,
+      func: {
+        srcRGB: 'src alpha',
+        dstRGB: 1,
+        srcAlpha: 1,
+        dstAlpha: 1
+      },
+      equation: {
+        rgb: 'add',
+        alpha: 'add'
+      }
     }
   })
 

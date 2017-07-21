@@ -19,20 +19,7 @@ module.exports = function createMapRenderer (regl, lines) {
     uniforms: {
       color: [0.75, 0.75, 0.75]
     },
-    primitive: 'lines',
-    blend: {
-      enable: true,
-      func: {
-        srcRGB: 'src alpha',
-        srcAlpha: 1,
-        dstRGB: 'one minus src alpha',
-        dstAlpha: 1
-      },
-      equation: {
-        rgb: 'add',
-        alpha: 'add'
-      }
-    }
+    primitive: 'lines'
   })
 
   return renderMap
