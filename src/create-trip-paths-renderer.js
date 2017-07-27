@@ -28,6 +28,7 @@ module.exports = function createTripPathsRenderer (regl, points) {
   const linesColors = []
   const linesStartTimes = []
   const linesDurations = []
+  const linesTripStateIndex = []
   points.forEach(p => {
     const arcPoints = 25
     const startTime = getSeconds(p.start_ts)
@@ -36,11 +37,13 @@ module.exports = function createTripPathsRenderer (regl, points) {
       linesColors.push(getColor(j / arcPoints))
       linesStartTimes.push(startTime)
       linesDurations.push(p.duration)
+      linesTripStateIndex.push(p.tripStateIndex)
 
       linesPoints.push(getPosition(p.startPosition, p.endPosition, (j + 1) / arcPoints))
       linesColors.push(getColor((j + 1) / arcPoints))
       linesStartTimes.push(startTime)
       linesDurations.push(p.duration)
+      linesTripStateIndex.push(p.tripStateIndex)
     }
   })
 
@@ -54,12 +57,8 @@ module.exports = function createTripPathsRenderer (regl, points) {
       position: linesPoints,
       color: linesColors,
       startTime: linesStartTimes,
-      duration: linesDurations
-    },
-
-    uniforms: {
-      pathAlpha: regl.prop('pathAlpha'),
-      arcHeight: regl.prop('arcHeight')
+      duration: linesDurations,
+      tripStateIndex: linesTripStateIndex
     },
 
     count: linesPoints.length,

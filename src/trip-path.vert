@@ -2,6 +2,7 @@ attribute vec3 position;
 attribute vec3 color;
 attribute float startTime;
 attribute float duration;
+attribute vec2 tripStateIndex;
 
 varying vec4 fragColor;
 varying float discardMe;
@@ -9,10 +10,12 @@ varying float discardMe;
 uniform mat4 projection;
 uniform mat4 view;
 uniform float elapsed;
-uniform float arcHeight;
-uniform float pathAlpha;
+uniform sampler2D tripStateTexture;
 
 void main() {
+  vec4 thisTripState = texture2D(tripStateTexture, tripStateIndex);
+  float arcHeight = thisTripState.x;
+  float pathAlpha = thisTripState.y;
   float middle = startTime + duration / 2.0;
   float endTime = startTime + duration;
   float buf = 200.0;

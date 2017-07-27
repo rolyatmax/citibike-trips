@@ -3,16 +3,20 @@ attribute vec2 endPosition;
 attribute vec4 color;
 attribute float startTime;
 attribute float duration;
+attribute vec2 tripStateIndex;
 
 varying vec4 fragColor;
 
 uniform mat4 projection;
 uniform mat4 view;
-uniform float pointSize;
-uniform float arcHeight;
 uniform float elapsed;
 
+uniform sampler2D tripStateTexture;
+
 void main() {
+  vec4 thisTripState = texture2D(tripStateTexture, tripStateIndex);
+  float arcHeight = thisTripState.x;
+  float pointSize = thisTripState.z;
   fragColor = color;
   float endTime = startTime + duration;
   float t = smoothstep(startTime, endTime, elapsed);
