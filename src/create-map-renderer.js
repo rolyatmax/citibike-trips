@@ -11,7 +11,7 @@ module.exports = function createMapRenderer (regl, lines) {
 
   const renderMap = regl({
     vert: glslify.file('./map.vert'),
-    frag: glslify.file('./map.frag'),
+    frag: glslify.file('./simple.frag'),
     attributes: {
       position: lineSegments
     },
@@ -22,5 +22,28 @@ module.exports = function createMapRenderer (regl, lines) {
     primitive: 'lines'
   })
 
-  return renderMap
+  const gridLines = []
+  const separation = 0.05
+  const limit = 2
+  for (let j = -limit; j <= limit; j += separation) {
+    gridLines.push([j, -limit, 0], [j, limit, 0], [-limit, j, 0], [limit, j, 0])
+  }
+
+  const renderGrid = regl({
+    vert: glslify.file('./simple.vert'),
+    frag: glslify.file('./simple.frag'),
+    attributes: {
+      position: gridLines
+    },
+    count: gridLines.length,
+    uniforms: {
+      color: [0.15, 0.15, 0.15, 0.25]
+    },
+    primitive: 'lines'
+  })
+
+  return () => {
+    renderGrid()
+    renderMap()
+  }
 }
