@@ -4,6 +4,10 @@ module.exports = function guiSettings (settings, onChange) {
   const settingsObj = {}
   const gui = new GUI()
   for (let key in settings) {
+    if (typeof settings[key] === 'function') {
+      gui.add({ [key]: settings[key] }, key)
+      continue
+    }
     settingsObj[key] = settings[key][0]
     const setting = gui
       .add(settingsObj, key, settings[key][1], settings[key][2])
@@ -13,10 +17,6 @@ module.exports = function guiSettings (settings, onChange) {
     if (settings[key][4]) {
       setting.onChange(onChange)
     }
-  }
-  if (onChange) {
-    const restart = onChange
-    gui.add({ restart }, 'restart')
   }
   return settingsObj
 }

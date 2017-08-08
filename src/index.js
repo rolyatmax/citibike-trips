@@ -32,12 +32,10 @@ const regl = createRegl({
   canvas: canvas
 })
 
-const renderElapsedTime = createElapsedTimeView(document.body.appendChild(document.createElement('div')))
-
 window.addEventListener('resize', fit(canvas), false)
 
 const nycStreetsFile = './cleaned/nyc-streets'
-const tripsFile = './cleaned/trips-20160910-11.csv'
+const tripsFile = './cleaned/trips-2017-06-09.csv'
 const stationsFile = './cleaned/stations.csv'
 
 Promise.all([
@@ -47,20 +45,29 @@ Promise.all([
 ]).then(function onLoad ([coordinates, trips, stations]) {
   trips = mungeStationsIntoTrip(trips, stations)
 
+  const renderElapsedTime = createElapsedTimeView(document.body.appendChild(document.createElement('div')), trips)
+
+  const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
+  const lines = coordinates.map(points => points.map(projectCoords))
+  let elapsed = 0
+
+  const focus = projectCoords([-73.990891, 40.728729]) // cooper union
+  const [fX, fY] = focus
+  const center = [fX - 0.15, fY + 0.15, -0.2] // i feel like these are misnamed in the 3d controls lib
+  const eye = [fX, fY, 0] // i feel like these are misnamed in the 3d controls lib
+  const camera = createRoamingCamera(canvas, focus, center, eye)
+
   const settings = setupDatGUI({
     speed: [60 * 15, 1, 7000, 1],
-    rayPickerThreshold: [0.03, 0.01, 0.1, 0.01],
+    rayPickerThreshold: [0.05, 0.01, 0.1, 0.01],
     showPoints: [true],
     showPaths: [true],
     curvedPaths: [true],
     subscriber: [true],
     nonSubscriber: [true],
-    roamingCamera: [true] // TODO: turn this into a function that 'create-roaming-camera' provides
+    startRoaming: camera.startRoaming,
+    restart: setup
   }, setup)
-
-  const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
-  const lines = coordinates.map(points => points.map(projectCoords))
-  let elapsed = 0
 
   for (let j = 0; j < trips.length; j++) {
     const trip = trips[j]
@@ -83,12 +90,6 @@ Promise.all([
   function setup () {
     elapsed = 0
   }
-
-  const focus = projectCoords([-73.990891, 40.728729]) // cooper union
-  const [fX, fY] = focus
-  const center = [fX - 0.15, fY + 0.15, -0.2] // i feel like these are misnamed in the 3d controls lib
-  const eye = [fX, fY, 0] // i feel like these are misnamed in the 3d controls lib
-  const camera = createRoamingCamera(canvas, focus, center, eye)
 
   const globalRender = regl({
     uniforms: {
@@ -116,7 +117,7 @@ Promise.all([
   setup()
 
   removeLoader()
-  const loopAtTime = 2 * 24 * 60 * 60
+  const loopAtTime = 24 * 60 * 60 // one day
   let lastTime = 0
   regl.frame(({ time, viewportWidth, viewportHeight }) => {
     const timeDiff = (time - lastTime) * settings.speed

@@ -2,6 +2,11 @@ const { createSpring } = require('spring-animator')
 const createCamera = require('3d-view-controls')
 
 module.exports = function createRoamingCamera (canvas, focus, center, eye) {
+  let isRoaming = true
+  let timeout
+
+  canvas.addEventListener('mousedown', stopRoaming)
+
   const camera = createCamera(canvas, {
     zoomSpeed: 4,
     distanceLimits: [0.05, 1.03]
@@ -31,13 +36,17 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye) {
     cameraZ.updateValue(Math.random() * -0.5)
   }
 
-  setRandomCameraPosition()
-  setInterval(setRandomCameraPosition, 10000)
+  cameraRoamLoop()
+  function cameraRoamLoop () {
+    clearTimeout(timeout)
+    timeout = setTimeout(cameraRoamLoop, 10000)
+    setRandomCameraPosition()
+  }
 
-  function tick (settings) {
+  function tick () {
     camera.tick()
     camera.up = [camera.up[0], camera.up[1], -999]
-    if (settings.roamingCamera) {
+    if (isRoaming) {
       camera.center = [cameraX.tick(), cameraY.tick(), cameraZ.tick()]
       camera.eye = [focusX.tick(), focusY.tick(), 0]
     }
@@ -48,11 +57,29 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye) {
   function getCenter () {
     return camera.center
   }
+  function stopRoaming () {
+    clearTimeout(timeout)
+    timeout = null
+    isRoaming = false
+  }
+  function startRoaming () {
+    focusX.updateValue(camera.center[0], false)
+    focusY.updateValue(camera.center[1], false)
+
+    cameraX.updateValue(camera.eye[0], false)
+    cameraY.updateValue(camera.eye[1], false)
+    cameraZ.updateValue(camera.eye[2], false)
+
+    cameraRoamLoop()
+
+    isRoaming = true
+  }
 
   window.camera = camera
   return {
     tick,
     getMatrix,
-    getCenter
+    getCenter,
+    startRoaming
   }
 }

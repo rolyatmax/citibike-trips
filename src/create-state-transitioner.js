@@ -1,4 +1,5 @@
 const glslify = require('glslify')
+const newArray = require('new-array')
 const mat4 = require('gl-mat4')
 const intersect = require('ray-plane-intersection')
 const pickRay = require('camera-picking-ray')
@@ -82,11 +83,36 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
     primitive: 'triangle strip'
   })
 
+  const circleGranularity = 30
+  const drawCircle = regl({
+    vert: glslify.file('./pointer-circle.vert'),
+    frag: glslify.file('./simple.frag'),
+    attributes: {
+      rads: newArray(circleGranularity + 1).map((_, i) => Math.PI * 2 * i / circleGranularity)
+    },
+    uniforms: {
+      center: regl.prop('center'),
+      size: regl.prop('size'),
+      projection: regl.prop('projection'),
+      view: regl.prop('view'),
+      color: [0.8, 0.7, 1.0]
+    },
+    count: circleGranularity,
+    primitive: 'line loop'
+  })
+
   function getStateIndexes () {
     return stateIndexes
   }
 
   function tick (context) {
+    const rayPickerThreshold = isShiftPressed ? context.rayPickerThreshold : 10
+    const rayPicker = isShiftPressed ? getIntersection(
+      mousePosition,
+      context.viewport,
+      context.projection,
+      context.view
+    ) || [0, 0, 0] : [0, 0, 0]
     cycleStates()
     updateState({
       showSubscriber: context.subscriber,
@@ -94,14 +120,17 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
       curvedPaths: context.curvedPaths,
       showPaths: context.showPaths,
       showPoints: context.showPoints,
-      rayPickerThreshold: isShiftPressed ? context.rayPickerThreshold : 10,
-      rayPicker: isShiftPressed ? getIntersection(
-        mousePosition,
-        context.viewport,
-        context.projection,
-        context.view
-      ) || [0, 0, 0] : [0, 0, 0]
+      rayPickerThreshold: rayPickerThreshold,
+      rayPicker: rayPicker
     })
+    if (isShiftPressed) {
+      drawCircle({
+        center: rayPicker,
+        size: rayPickerThreshold,
+        projection: context.projection,
+        view: context.view
+      })
+    }
   }
 
   function getStateTexture () {

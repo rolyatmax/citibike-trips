@@ -71,11 +71,33 @@ function parseStationsCSV (data) {
 }
 
 function mungeStationsIntoTrip (trips, stations) {
+  const filteredTrips = []
+  const knownMissingStations = {}
   for (let trip of trips) {
-    trip.start_station = getLatLonFromStation(stations[trip.start_station])
-    trip.end_station = getLatLonFromStation(stations[trip.end_station])
+    const startStation = stations[trip.start_station]
+    const endStation = stations[trip.end_station]
+    if (!startStation) {
+      if (!knownMissingStations[trip.start_station]) {
+        console.warn(`station ${trip.start_station} not found in stations list`)
+      }
+      knownMissingStations[trip.start_station] = true
+      continue
+    }
+    if (!endStation) {
+      if (!knownMissingStations[trip.end_station]) {
+        console.warn(`station ${trip.end_station} not found in stations list`)
+      }
+      knownMissingStations[trip.end_station] = true
+      continue
+    }
+    trip.start_station = getLatLonFromStation(startStation)
+    trip.end_station = getLatLonFromStation(endStation)
+    filteredTrips.push(trip)
   }
-  return trips
+  if (trips.length - filteredTrips.length > 0) {
+    console.warn(`filtered out ${trips.length - filteredTrips.length} trips`)
+  }
+  return filteredTrips
 }
 
 function getLatLonFromStation (station) {
@@ -83,11 +105,9 @@ function getLatLonFromStation (station) {
   return [longitude, latitude]
 }
 
-// very specific to our start date (9/10/2016)
-// THIS IS BAD FIXME PLEASE
+// gets seconds from day start
 function getSeconds (datetimeString) {
-  const [date, time] = datetimeString.split(' ')
-  const days = date === '9/11/2016' ? 1 : 0
+  const [, time] = datetimeString.split(' ')
   const [hours, minutes, seconds] = time.split(':').map(n => parseInt(n, 10))
-  return seconds + minutes * 60 + hours * 3600 + days * 3600 * 24
+  return seconds + minutes * 60 + hours * 3600
 }
