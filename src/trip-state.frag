@@ -3,6 +3,8 @@ precision mediump float;
 uniform sampler2D curTripStateTexture;
 uniform sampler2D prevTripStateTexture;
 uniform sampler2D tripMetaDataTexture;
+uniform vec3 rayPicker;
+uniform float rayPickerThreshold;
 uniform float tick;
 uniform float dampening;
 uniform float stiffness;
@@ -30,19 +32,22 @@ void main() {
   vec4 tripMetaData = texture2D(tripMetaDataTexture, tripStateIndex);
 
   bool isSubscriber = tripMetaData.x == 1.0;
+  vec2 tripStart = tripMetaData.yz;
+
+  bool isNearRayPicker = distance(tripStart, rayPicker.xy) < rayPickerThreshold;
 
   float destArcHeight = 0.0;
   float destPathAlpha = 0.0;
   float destPointSize = 0.0;
 
   if (isSubscriber) {
-    if (showSubscriber && curvedPaths) destArcHeight = maxArcHeight;
-    if (showSubscriber && showPaths) destPathAlpha = 1.0;
-    if (showSubscriber && showPoints) destPointSize = maxPointSize;
+    if (isNearRayPicker && showSubscriber && curvedPaths) destArcHeight = maxArcHeight;
+    if (isNearRayPicker && showSubscriber && showPaths) destPathAlpha = 1.0;
+    if (isNearRayPicker && showSubscriber && showPoints) destPointSize = maxPointSize;
   } else {
-    if (showNonSubscriber && curvedPaths) destArcHeight = maxArcHeight;
-    if (showNonSubscriber && showPaths) destPathAlpha = 1.0;
-    if (showNonSubscriber && showPoints) destPointSize = maxPointSize;
+    if (isNearRayPicker && showNonSubscriber && curvedPaths) destArcHeight = maxArcHeight;
+    if (isNearRayPicker && showNonSubscriber && showPaths) destPathAlpha = 1.0;
+    if (isNearRayPicker && showNonSubscriber && showPoints) destPointSize = maxPointSize;
   }
 
   float arcHeight = getNextValue(curState.x, prevState.x, destArcHeight);

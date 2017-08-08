@@ -49,6 +49,7 @@ Promise.all([
 
   const settings = setupDatGUI({
     speed: [60 * 15, 1, 7000, 1],
+    rayPickerThreshold: [0.03, 0.01, 0.1, 0.01],
     showPoints: [true],
     showPaths: [true],
     curvedPaths: [true],
@@ -61,14 +62,18 @@ Promise.all([
   const lines = coordinates.map(points => points.map(projectCoords))
   let elapsed = 0
 
+  for (let j = 0; j < trips.length; j++) {
+    const trip = trips[j]
+    trip.startPosition = projectCoords(trip.start_station)
+    trip.endPosition = projectCoords(trip.end_station)
+  }
+
   const stateTransitioner = createStateTransitioner(regl, trips, settings)
   const stateIndexes = stateTransitioner.getStateIndexes()
 
   for (let j = 0; j < trips.length; j++) {
     const trip = trips[j]
     trip.tripStateIndex = stateIndexes[j]
-    trip.startPosition = projectCoords(trip.start_station)
-    trip.endPosition = projectCoords(trip.end_station)
   }
 
   const drawTripPoints = createTripPointsRenderer(regl, trips)
@@ -87,14 +92,8 @@ Promise.all([
 
   const globalRender = regl({
     uniforms: {
-      projection: ({viewportWidth, viewportHeight}) => (
-        mat4.perspective([],
-          Math.PI / 4,
-          viewportWidth / viewportHeight,
-          0.01,
-          10)
-      ),
-      view: () => camera.getMatrix(),
+      projection: regl.prop('projection'),
+      view: regl.prop('view'),
       elapsed: regl.prop('elapsed'),
       center: regl.prop('center'),
       tripStateTexture: () => stateTransitioner.getStateTexture()
@@ -119,22 +118,37 @@ Promise.all([
   removeLoader()
   const loopAtTime = 2 * 24 * 60 * 60
   let lastTime = 0
-  regl.frame(({ time }) => {
+  regl.frame(({ time, viewportWidth, viewportHeight }) => {
     const timeDiff = (time - lastTime) * settings.speed
     elapsed = (elapsed + timeDiff) % loopAtTime
     lastTime = time
+
     regl.clear({
       color: BG_COLOR,
       depth: 1
     })
+
+    const view = camera.getMatrix()
+    const projection = mat4.perspective([],
+      Math.PI / 4,
+      viewportWidth / viewportHeight,
+      0.01,
+      10)
+
     camera.tick(settings)
 
-    stateTransitioner.tick(settings)
+    stateTransitioner.tick(Object.assign({
+      projection: projection,
+      view: view,
+      viewport: [0, 0, viewportWidth, viewportHeight]
+    }, settings))
 
     renderElapsedTime(elapsed)
     globalRender({
       elapsed: elapsed,
-      center: camera.getCenter()
+      center: camera.getCenter(),
+      view: view,
+      projection: projection
     }, () => {
       renderMap()
       drawTripPoints()

@@ -1,6 +1,21 @@
 const glslify = require('glslify')
+const mat4 = require('gl-mat4')
+const intersect = require('ray-plane-intersection')
+const pickRay = require('camera-picking-ray')
 
 module.exports = function createStateTransitioner (regl, trips, settings) {
+  let mousePosition = [0, 0]
+  regl._gl.canvas.addEventListener('mousemove', (e) => {
+    mousePosition = [e.clientX, e.clientY]
+  })
+  let isShiftPressed = false
+  document.addEventListener('keydown', (e) => {
+    if (e.which === 16) isShiftPressed = true
+  })
+  document.addEventListener('keyup', (e) => {
+    if (e.which === 16) isShiftPressed = false
+  })
+
   const tripStateTextureSize = Math.ceil(Math.sqrt(trips.length))
   const tripStateTextureLength = tripStateTextureSize * tripStateTextureSize
   const initialTripState = new Float32Array(tripStateTextureLength * 4)
@@ -21,6 +36,8 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
     const tripStateIndexY = j / tripStateTextureSize | 0
     stateIndexes.push([tripStateIndexX / tripStateTextureSize, tripStateIndexY / tripStateTextureSize])
     tripMetaDataState[j * 4] = trips[j].subscriber ? 1.0 : 0.0 // subscriber
+    tripMetaDataState[j * 4 + 1] = trips[j].startPosition[0]
+    tripMetaDataState[j * 4 + 2] = trips[j].startPosition[1]
   }
   const tripMetaDataTexture = createStateBuffer(tripMetaDataState, tripStateTextureSize)
 
@@ -48,6 +65,8 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
       curTripStateTexture: () => curTripStateTexture,
       prevTripStateTexture: () => prevTripStateTexture,
       tripMetaDataTexture: tripMetaDataTexture,
+      rayPicker: regl.prop('rayPicker'),
+      rayPickerThreshold: regl.prop('rayPickerThreshold'),
       dampening: dampening,
       stiffness: stiffness,
       maxArcHeight: MAX_ARC_HEIGHT,
@@ -67,14 +86,21 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
     return stateIndexes
   }
 
-  function tick (settings) {
+  function tick (context) {
     cycleStates()
     updateState({
-      showSubscriber: settings.subscriber,
-      showNonSubscriber: settings.nonSubscriber,
-      curvedPaths: settings.curvedPaths,
-      showPaths: settings.showPaths,
-      showPoints: settings.showPoints
+      showSubscriber: context.subscriber,
+      showNonSubscriber: context.nonSubscriber,
+      curvedPaths: context.curvedPaths,
+      showPaths: context.showPaths,
+      showPoints: context.showPoints,
+      rayPickerThreshold: isShiftPressed ? context.rayPickerThreshold : 10,
+      rayPicker: isShiftPressed ? getIntersection(
+        mousePosition,
+        context.viewport,
+        context.projection,
+        context.view
+      ) || [0, 0, 0] : [0, 0, 0]
     })
   }
 
@@ -116,4 +142,15 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
     curTripStateTexture = nextTripStateTexture
     nextTripStateTexture = tmp
   }
+}
+
+function getIntersection (mouse, viewport, projection, view) {
+  const projView = mat4.multiply([], projection, view)
+  const invProjView = mat4.invert([], projView)
+  const rayOrigin = []
+  const rayDir = []
+  pickRay(rayOrigin, rayDir, mouse, viewport, invProjView)
+  const normal = [0, 0, -1]
+  const distance = 0
+  return intersect([], rayOrigin, rayDir, normal, distance)
 }
