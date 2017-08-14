@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <title>citi bike commute</title>
+  <meta charset="utf-8">
+  <style>
+    .loader {
+      margin: 100px auto;
+      color: white;
+      font-family: monospace;
+      font-size: 30px;
+      width: 400px;
+    }
+    .app-container {
+      margin: 0;
+      padding: 0;
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      width: 100vw;
+      opacity: 1;
+      transition: opacity 400ms linear;
+    }
+    .app-container.hidden {
+      opacity: 0;
+    }
+    .visualization {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="loader">Getting everything set up. This should only take a few seconds.</div>
+  <div class="app-container hidden">
+    <!-- social icons -->
+    <div class="visualization"></div>
+    <!-- title -->
+    <!-- description -->
+    <!-- filters -->
+    <!-- datetime -->
+    <!-- timeline -->
+  </div>
+  <script src="index.js"></script>
+</body>
+</html>

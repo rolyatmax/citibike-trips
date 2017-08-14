@@ -4,7 +4,6 @@ const createRegl = require('regl')
 const fit = require('canvas-fit')
 const css = require('dom-css')
 const mat4 = require('gl-mat4')
-const showLoader = require('./loader')
 const createProjection = require('./create-projection')
 const createTripPointsRenderer = require('./create-trip-points-renderer')
 const createTripPathsRenderer = require('./create-trip-paths-renderer')
@@ -24,9 +23,9 @@ const {
 const BG_COLOR = [0.22, 0.22, 0.22, 1]
 const rgba = `rgba(${BG_COLOR.slice(0, 3).map(v => v * 256 | 0).join(',')}, ${BG_COLOR[3]})`
 css(document.body, 'background-color', rgba)
-const removeLoader = showLoader(document.body)
 
-const canvas = document.body.appendChild(document.createElement('canvas'))
+const appContainer = document.querySelector('.app-container')
+const canvas = appContainer.querySelector('.visualization').appendChild(document.createElement('canvas'))
 const regl = createRegl({
   extensions: 'OES_texture_float',
   canvas: canvas
@@ -117,6 +116,7 @@ Promise.all([
   setup()
 
   removeLoader()
+  appContainer.classList.remove('hidden')
   const loopAtTime = 24 * 60 * 60 // one day
   let lastTime = 0
   regl.frame(({ time, viewportWidth, viewportHeight }) => {
@@ -157,3 +157,8 @@ Promise.all([
     })
   })
 })
+
+function removeLoader () {
+  const loader = document.querySelector('.loader')
+  loader.parentElement.removeChild(loader)
+}
