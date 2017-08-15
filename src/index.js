@@ -10,6 +10,7 @@ const createTripPathsRenderer = require('./create-trip-paths-renderer')
 const createStateTransitioner = require('./create-state-transitioner')
 const createMapRenderer = require('./create-map-renderer')
 const createElapsedTimeView = require('./create-elapsed-time-view')
+const createTimeline = require('./create-timeline')
 const createRoamingCamera = require('./create-roaming-camera')
 const setupDatGUI = require('./setup-dat-gui')
 const {
@@ -44,7 +45,8 @@ Promise.all([
 ]).then(function onLoad ([coordinates, trips, stations]) {
   trips = mungeStationsIntoTrip(trips, stations)
 
-  const renderElapsedTime = createElapsedTimeView(document.body.appendChild(document.createElement('div')), trips)
+  const renderTimeline = createTimeline(document.querySelector('.timeline'), trips)
+  const renderElapsedTime = createElapsedTimeView(document.querySelector('.clock'), trips)
 
   const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
   const lines = coordinates.map(points => points.map(projectCoords))

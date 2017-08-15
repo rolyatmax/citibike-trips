@@ -16,7 +16,7 @@ module.exports = function createTripPathsRenderer (regl, points) {
 
   function getPosition (start, end, t) {
     const position = vec2.lerp([], start, end, t)
-    const z = Math.sin(t * Math.PI) * -0.1 * vec2.distance(start, end)
+    const z = Math.sin(t * Math.PI) * -0.1 * Math.max(0.04, vec2.distance(start, end))
     position.push(z)
     return position
   }
