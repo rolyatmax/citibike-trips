@@ -21,6 +21,7 @@ const {
   mungeStationsIntoTrip
 } = require('./helpers')
 
+const vizDuration = 24 * 60 * 60
 const BG_COLOR = [0.22, 0.22, 0.22, 1]
 const rgba = `rgba(${BG_COLOR.slice(0, 3).map(v => v * 256 | 0).join(',')}, ${BG_COLOR[3]})`
 css(document.body, 'background-color', rgba)
@@ -45,12 +46,8 @@ Promise.all([
 ]).then(function onLoad ([coordinates, trips, stations]) {
   trips = mungeStationsIntoTrip(trips, stations)
 
-  const renderTimeline = createTimeline(document.querySelector('.timeline'), trips)
-  const renderElapsedTime = createElapsedTimeView(document.querySelector('.clock'), trips)
-
   const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
   const lines = coordinates.map(points => points.map(projectCoords))
-  let elapsed = 0
 
   const focus = projectCoords([-73.990891, 40.728729]) // cooper union
   const [fX, fY] = focus
@@ -66,9 +63,14 @@ Promise.all([
     curvedPaths: [true],
     subscriber: [true],
     nonSubscriber: [true],
-    startRoaming: camera.startRoaming,
-    restart: setup
+    startRoaming: camera.startRoaming
   }, setup)
+
+  let elapsed = 0
+  const setElapsed = (newElapsed) => { elapsed = newElapsed }
+  const timelineEl = document.querySelector('.timeline')
+  const renderTimeline = createTimeline(timelineEl, trips, vizDuration, setElapsed, settings)
+  const renderElapsedTime = createElapsedTimeView(document.querySelector('.clock'), trips)
 
   for (let j = 0; j < trips.length; j++) {
     const trip = trips[j]
@@ -119,11 +121,10 @@ Promise.all([
 
   removeLoader()
   appContainer.classList.remove('hidden')
-  const loopAtTime = 24 * 60 * 60 // one day
   let lastTime = 0
   regl.frame(({ time, viewportWidth, viewportHeight }) => {
     const timeDiff = (time - lastTime) * settings.speed
-    elapsed = (elapsed + timeDiff) % loopAtTime
+    elapsed = (elapsed + timeDiff) % vizDuration
     lastTime = time
 
     regl.clear({
@@ -146,6 +147,7 @@ Promise.all([
       viewport: [0, 0, viewportWidth, viewportHeight]
     }, settings))
 
+    renderTimeline(elapsed, settings)
     renderElapsedTime(elapsed)
     globalRender({
       elapsed: elapsed,

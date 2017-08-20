@@ -1,3 +1,5 @@
+const { secondsToTime, getMeridian, convertHourFrom24H } = require('./helpers')
+
 module.exports = function createElapsedTimeView (el, trips) {
   // assuming trips are in order, we'll say the current time of the viz
   // is simply midnight of the day of the first trip in the list plus
@@ -20,35 +22,5 @@ module.exports = function createElapsedTimeView (el, trips) {
   }
 }
 
-function secondsToTime (seconds) {
-  seconds = seconds | 0
-  const hours = seconds / 3600 | 0
-  seconds = seconds % 3600
-  const minutes = seconds / 60 | 0
-  const time = [hours, leftPad(minutes, 2, 0)].join(':')
-  return `${time}`
-}
-
-function leftPad (val, len, char) {
-  val = `${val}`
-  while (val.length < len) {
-    val = `${char}${val}`
-  }
-  return val
-}
-
 const days = 'Sunday Monday Tuesday Wednesday Thursday Friday Saturday Sunday'.split(' ')
 const months = 'January February March April May June July August September October November December'.split(' ')
-
-function getMeridian (time) {
-  const hours = parseInt(time.split(':')[0], 10)
-  return hours > 12 ? 'PM' : 'AM'
-}
-
-function convertHourFrom24H (time) {
-  let [hours, minutes] = time.split(':')
-  hours = parseInt(hours, 10)
-  if (hours === 0) return `12:${minutes}`
-  if (hours > 12) return `${hours - 12}:${minutes}`
-  return time
-}

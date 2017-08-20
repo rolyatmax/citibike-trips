@@ -4,7 +4,10 @@ module.exports = {
   parseTripsCSV,
   parseStationsCSV,
   mungeStationsIntoTrip,
-  getSeconds
+  getSeconds,
+  getMeridian,
+  convertHourFrom24H,
+  secondsToTime
 }
 
 function extent (lines) {
@@ -110,4 +113,34 @@ function getSeconds (datetimeString) {
   const [, time] = datetimeString.split(' ')
   const [hours, minutes, seconds] = time.split(':').map(n => parseInt(n, 10))
   return seconds + minutes * 60 + hours * 3600
+}
+
+function secondsToTime (seconds) {
+  seconds = seconds | 0
+  const hours = seconds / 3600 | 0
+  seconds = seconds % 3600
+  const minutes = seconds / 60 | 0
+  const time = [hours, leftPad(minutes, 2, 0)].join(':')
+  return `${time}`
+}
+
+function getMeridian (time) {
+  const hours = parseInt(time.split(':')[0], 10) % 24
+  return hours > 11 ? 'PM' : 'AM'
+}
+
+function convertHourFrom24H (time) {
+  let [hours, minutes] = time.split(':')
+  hours = parseInt(hours, 10)
+  if (hours === 0) return `12:${minutes}`
+  if (hours > 12) return `${hours - 12}:${minutes}`
+  return time
+}
+
+function leftPad (val, len, char) {
+  val = `${val}`
+  while (val.length < len) {
+    val = `${char}${val}`
+  }
+  return val
 }
