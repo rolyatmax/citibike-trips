@@ -1,6 +1,6 @@
 # citibike-trips
 
-![citibike-trips](/citibike-trips.png?raw=true "citibike-trips")
+![citibike-trips](/images/citibike-trips.png?raw=true "citibike-trips")
 
 ```
 npm run serve
@@ -8,7 +8,7 @@ npm run serve
 
 For dev:
 ```
-npm i
+npm install
 npm start
 ```
 
