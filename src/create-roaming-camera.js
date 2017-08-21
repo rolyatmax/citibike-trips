@@ -1,11 +1,13 @@
 const { createSpring } = require('spring-animator')
 const createCamera = require('3d-view-controls')
+const { getIntersection } = require('./helpers')
 
-module.exports = function createRoamingCamera (canvas, focus, center, eye) {
+module.exports = function createRoamingCamera (canvas, focus, center, eye, projection) {
   let isRoaming = true
   let timeout
 
   canvas.addEventListener('mousedown', stopRoaming)
+  canvas.addEventListener('dblclick', onDblClick)
 
   const camera = createCamera(canvas, {
     zoomSpeed: 4,
@@ -16,8 +18,8 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye) {
   const cameraY = createSpring(0.005, 1.5, center[1])
   const cameraZ = createSpring(0.005, 1.5, center[2])
 
-  const focusX = createSpring(0.005, 1.5, fX)
-  const focusY = createSpring(0.005, 1.5, fY)
+  const focusX = createSpring(0.05, 1.5, fX)
+  const focusY = createSpring(0.05, 1.5, fY)
 
   camera.lookAt(
     center,
@@ -25,9 +27,32 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye) {
     [0.52, -0.11, -99]
   )
 
+  function onDblClick (e) {
+    const [fX, fY] = getIntersection(
+      [e.clientX, e.clientY],
+      // prob not the best idea since elsewhere we are using `viewportWidth`
+      // and `viewportHeight` passed by regl
+      [0, 0, window.innerWidth, window.innerHeight],
+      projection,
+      camera.matrix
+    )
+    setSpringsToCurrentCameraValues()
+    focusX.updateValue(fX)
+    focusY.updateValue(fY)
+
+    // clear this text selection nonsense on screen after double click
+    if (document.selection && document.selection.empty) {
+      document.selection.empty()
+    } else if (window.getSelection) {
+      const sel = window.getSelection()
+      sel.removeAllRanges()
+    }
+  }
+
   function setRandomCameraPosition () {
-    const newFocusX = fX + (Math.random() - 0.5) * 0.2
-    const newFocusY = fY + (Math.random() - 0.5) * 0.2
+    // dont move focus too much because it has a much snappier spring
+    const newFocusX = fX + (Math.random() - 0.5) * 0.01
+    const newFocusY = fY + (Math.random() - 0.5) * 0.01
     focusX.updateValue(newFocusX)
     focusY.updateValue(newFocusY)
 
@@ -46,9 +71,9 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye) {
   function tick () {
     camera.tick()
     camera.up = [camera.up[0], camera.up[1], -999]
+    camera.eye = [focusX.tick(), focusY.tick(), 0]
     if (isRoaming) {
       camera.center = [cameraX.tick(), cameraY.tick(), cameraZ.tick()]
-      camera.eye = [focusX.tick(), focusY.tick(), 0]
     }
   }
   function getMatrix () {
@@ -63,16 +88,18 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye) {
     isRoaming = false
   }
   function startRoaming () {
+    setSpringsToCurrentCameraValues()
+    cameraRoamLoop()
+    isRoaming = true
+  }
+
+  function setSpringsToCurrentCameraValues () {
     focusX.updateValue(camera.center[0], false)
     focusY.updateValue(camera.center[1], false)
 
     cameraX.updateValue(camera.eye[0], false)
     cameraY.updateValue(camera.eye[1], false)
     cameraZ.updateValue(camera.eye[2], false)
-
-    cameraRoamLoop()
-
-    isRoaming = true
   }
 
   window.camera = camera

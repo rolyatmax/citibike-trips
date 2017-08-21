@@ -1,8 +1,9 @@
 const { GUI } = require('dat-gui')
 
-module.exports = function guiSettings (settings, onChange) {
+module.exports = function guiSettings (settings) {
   const settingsObj = {}
   const gui = new GUI()
+  gui.closed = true
   for (let key in settings) {
     if (typeof settings[key] === 'function') {
       gui.add({ [key]: settings[key] }, key)
@@ -13,9 +14,6 @@ module.exports = function guiSettings (settings, onChange) {
       .add(settingsObj, key, settings[key][1], settings[key][2])
     if (settings[key][3]) {
       setting.step(settings[key][3])
-    }
-    if (settings[key][4]) {
-      setting.onChange(onChange)
     }
   }
   return settingsObj

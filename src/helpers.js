@@ -1,3 +1,7 @@
+const mat4 = require('gl-mat4')
+const intersect = require('ray-plane-intersection')
+const pickRay = require('camera-picking-ray')
+
 module.exports = {
   extent,
   parseLines,
@@ -7,7 +11,8 @@ module.exports = {
   getSeconds,
   getMeridian,
   convertHourFrom24H,
-  secondsToTime
+  secondsToTime,
+  getIntersection
 }
 
 function extent (lines) {
@@ -143,4 +148,15 @@ function leftPad (val, len, char) {
     val = `${char}${val}`
   }
   return val
+}
+
+function getIntersection (mouse, viewport, projection, view) {
+  const projView = mat4.multiply([], projection, view)
+  const invProjView = mat4.invert([], projView)
+  const rayOrigin = []
+  const rayDir = []
+  pickRay(rayOrigin, rayDir, mouse, viewport, invProjView)
+  const normal = [0, 0, -1]
+  const distance = 0
+  return intersect([], rayOrigin, rayDir, normal, distance)
 }

@@ -11,6 +11,7 @@ const createStateTransitioner = require('./create-state-transitioner')
 const createMapRenderer = require('./create-map-renderer')
 const createElapsedTimeView = require('./create-elapsed-time-view')
 const createTimeline = require('./create-timeline')
+const createButtons = require('./create-buttons')
 const createRoamingCamera = require('./create-roaming-camera')
 const setupDatGUI = require('./setup-dat-gui')
 const {
@@ -49,28 +50,37 @@ Promise.all([
   const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
   const lines = coordinates.map(points => points.map(projectCoords))
 
-  const focus = projectCoords([-73.990891, 40.728729]) // cooper union
+  const projection = mat4.perspective([],
+    Math.PI / 4,
+    window.innerWidth / window.innerHeight,
+    0.01,
+    10)
+  const focus = projectCoords([-74.006861, 40.724130]) // holland tunnel
   const [fX, fY] = focus
   const center = [fX - 0.15, fY + 0.15, -0.2] // i feel like these are misnamed in the 3d controls lib
   const eye = [fX, fY, 0] // i feel like these are misnamed in the 3d controls lib
-  const camera = createRoamingCamera(canvas, focus, center, eye)
+  const camera = createRoamingCamera(canvas, focus, center, eye, projection)
 
-  const settings = setupDatGUI({
+  let settings = setupDatGUI({
     speed: [60 * 15, 1, 7000, 1],
     rayPickerThreshold: [0.05, 0.01, 0.1, 0.01],
-    showPoints: [true],
-    showPaths: [true],
-    curvedPaths: [true],
-    subscriber: [true],
-    nonSubscriber: [true],
     startRoaming: camera.startRoaming
-  }, setup)
+  })
 
-  let elapsed = 0
+  settings = Object.assign(settings, {
+    showPoints: true,
+    showPaths: true,
+    curvedPaths: true,
+    subscriber: true,
+    nonSubscriber: true
+  })
+
+  let elapsed = 4 * 60 * 60 // start at 4:00 so we get into the action a lil' faster
   const setElapsed = (newElapsed) => { elapsed = newElapsed }
   const timelineEl = document.querySelector('.timeline')
   const renderTimeline = createTimeline(timelineEl, trips, vizDuration, setElapsed, settings)
   const renderElapsedTime = createElapsedTimeView(document.querySelector('.clock'), trips)
+  const renderButtons = createButtons(document.querySelector('.buttons'), settings)
 
   for (let j = 0; j < trips.length; j++) {
     const trip = trips[j]
@@ -89,10 +99,6 @@ Promise.all([
   const drawTripPoints = createTripPointsRenderer(regl, trips)
   const drawTripPaths = createTripPathsRenderer(regl, trips)
   const renderMap = createMapRenderer(regl, lines)
-
-  function setup () {
-    elapsed = 0
-  }
 
   const globalRender = regl({
     uniforms: {
@@ -117,12 +123,10 @@ Promise.all([
     }
   })
 
-  setup()
-
   removeLoader()
   appContainer.classList.remove('hidden')
   let lastTime = 0
-  regl.frame(({ time, viewportWidth, viewportHeight }) => {
+  regl.frame(({ time }) => {
     const timeDiff = (time - lastTime) * settings.speed
     elapsed = (elapsed + timeDiff) % vizDuration
     lastTime = time
@@ -133,20 +137,16 @@ Promise.all([
     })
 
     const view = camera.getMatrix()
-    const projection = mat4.perspective([],
-      Math.PI / 4,
-      viewportWidth / viewportHeight,
-      0.01,
-      10)
 
     camera.tick(settings)
 
     stateTransitioner.tick(Object.assign({
       projection: projection,
       view: view,
-      viewport: [0, 0, viewportWidth, viewportHeight]
+      viewport: [0, 0, window.innerWidth, window.innerHeight]
     }, settings))
 
+    renderButtons(settings)
     renderTimeline(elapsed, settings)
     renderElapsedTime(elapsed)
     globalRender({

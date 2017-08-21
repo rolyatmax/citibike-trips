@@ -1,8 +1,6 @@
 const glslify = require('glslify')
 const newArray = require('new-array')
-const mat4 = require('gl-mat4')
-const intersect = require('ray-plane-intersection')
-const pickRay = require('camera-picking-ray')
+const { getIntersection } = require('./helpers')
 
 module.exports = function createStateTransitioner (regl, trips, settings) {
   let mousePosition = [0, 0]
@@ -171,15 +169,4 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
     curTripStateTexture = nextTripStateTexture
     nextTripStateTexture = tmp
   }
-}
-
-function getIntersection (mouse, viewport, projection, view) {
-  const projView = mat4.multiply([], projection, view)
-  const invProjView = mat4.invert([], projView)
-  const rayOrigin = []
-  const rayDir = []
-  pickRay(rayOrigin, rayDir, mouse, viewport, invProjView)
-  const normal = [0, 0, -1]
-  const distance = 0
-  return intersect([], rayOrigin, rayDir, normal, distance)
 }
