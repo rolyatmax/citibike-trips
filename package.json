@@ -4,6 +4,7 @@
   "scripts": {
     "start": "budo src/index.js:bundle.js --live --open",
     "build": "browserify src/index.js > bundle.js",
+    "serve": "open http://localhost:8080 && python -m SimpleHTTPServer 8080",
     "lint": "standard"
   },
   "dependencies": {
