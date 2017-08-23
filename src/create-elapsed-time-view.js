@@ -5,7 +5,7 @@ module.exports = function createElapsedTimeView (el, trips) {
   // is simply midnight of the day of the first trip in the list plus
   // elapsed time
   const firstTripStartDate = trips[0]['start_ts'].split(' ')[0]
-  const vizStartTime = (new Date(`${firstTripStartDate} 00:00:00`)).getTime()
+  const vizStartTime = (new Date(`${firstTripStartDate}T00:00:00`)).getTime()
 
   const timeEl = el.querySelector('span.time')
   const meridanEl = el.querySelector('span.meridian')
