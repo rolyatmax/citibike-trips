@@ -13,6 +13,7 @@ const createElapsedTimeView = require('./create-elapsed-time-view')
 const createTimeline = require('./create-timeline')
 const createButtons = require('./create-buttons')
 const createRoamingCamera = require('./create-roaming-camera')
+const checkSupport = require('./check-support')
 const setupDatGUI = require('./setup-dat-gui')
 const {
   extent,
@@ -34,6 +35,8 @@ const regl = createRegl({
   canvas: canvas
 })
 
+checkSupport(regl)
+
 window.addEventListener('resize', fit(canvas), false)
 
 const nycStreetsFile = './cleaned/nyc-streets'
@@ -50,21 +53,24 @@ Promise.all([
   const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
   const lines = coordinates.map(points => points.map(projectCoords))
 
-  const projection = mat4.perspective([],
+  const getProjection = () => mat4.perspective(
+    [],
     Math.PI / 4,
     window.innerWidth / window.innerHeight,
     0.01,
-    10)
+    10
+  )
   const focus = projectCoords([-74.006861, 40.724130]) // holland tunnel
   const [fX, fY] = focus
   const center = [fX - 0.15, fY + 0.15, -0.2] // i feel like these are misnamed in the 3d controls lib
   const eye = [fX, fY, 0] // i feel like these are misnamed in the 3d controls lib
-  const camera = createRoamingCamera(canvas, focus, center, eye, projection)
+  const camera = createRoamingCamera(canvas, focus, center, eye, getProjection)
 
   let settings = setupDatGUI({
     speed: [60 * 15, 1, 7000, 1],
     rayPickerThreshold: [0.05, 0.01, 0.1, 0.01],
-    startRoaming: camera.startRoaming
+    startRoaming: camera.startRoaming,
+    'start/stop': () => { paused = !paused }
   })
 
   settings = Object.assign(settings, {
@@ -126,9 +132,12 @@ Promise.all([
   removeLoader()
   appContainer.classList.remove('hidden')
   let lastTime = 0
+  let paused = false
   regl.frame(({ time }) => {
-    const timeDiff = (time - lastTime) * settings.speed
-    elapsed = (elapsed + timeDiff) % vizDuration
+    if (!paused) {
+      const timeDiff = (time - lastTime) * settings.speed
+      elapsed = (elapsed + timeDiff) % vizDuration
+    }
     lastTime = time
 
     regl.clear({
@@ -141,7 +150,7 @@ Promise.all([
     camera.tick(settings)
 
     stateTransitioner.tick(Object.assign({
-      projection: projection,
+      projection: getProjection(),
       view: view,
       viewport: [0, 0, window.innerWidth, window.innerHeight]
     }, settings))
@@ -153,7 +162,7 @@ Promise.all([
       elapsed: elapsed,
       center: camera.getCenter(),
       view: view,
-      projection: projection
+      projection: getProjection()
     }, () => {
       renderMap()
       drawTripPoints()

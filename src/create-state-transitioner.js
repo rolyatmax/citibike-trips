@@ -147,20 +147,11 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
       shape: [textureSize, textureSize, 4],
       type: 'float'
     })
-
-    let fbuffer
-    try {
-      fbuffer = regl.framebuffer({
-        color: initialTexture,
-        depth: false,
-        stencil: false
-      })
-    } catch (err) {
-      // notSupported()
-      throw new Error(err)
-    }
-
-    return fbuffer
+    return regl.framebuffer({
+      color: initialTexture,
+      depth: false,
+      stencil: false
+    })
   }
 
   function cycleStates () {

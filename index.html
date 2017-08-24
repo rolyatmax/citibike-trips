@@ -12,12 +12,22 @@
       margin: 0;
       padding: 0;
     }
+    .not-supported {
+      font-size: 46px;
+      line-height: 1.4em;
+      width: 600px;
+      margin: 200px auto;
+      color: 'white';
+    }
+    .not-supported a {
+      color: orange;
+    }
     .loader {
       margin: 100px auto;
       color: white;
       font-family: monospace;
-      font-size: 30px;
-      width: 400px;
+      font-size: 26px;
+      width: 540px;
     }
     .app-container {
       margin: 0;
@@ -121,14 +131,14 @@
   </style>
 </head>
 <body>
-  <div class="loader">Getting everything set up. This should only take a few seconds.</div>
+  <div class="loader">Loading a couple megabytes of data. This should only take a few seconds. If you're on a slow connection, this might take a little longer.</div>
   <div class="app-container hidden">
     <!-- social icons -->
     <div class="visualization"></div>
     <div class="copy">
       <h1>The Citi Bike Commute</h1>
       <!-- <p>These are all the Citi Bike trips from a single day. Notice the movement of bikes into and out of Manhattan as the work day begins and ends.</p> -->
-      <p>Hold <span>shift</span> and point your mouse to a part of the map to show trips originating in that area. Finally, click, drag, and scroll to change your vantage point.</p>
+      <p>Hold <span>shift</span> and point your mouse to a part of the map to show trips originating in that area. Click, double click, drag, and scroll to change your vantage point. Finally, click the timeline to jump to a different part of the day.</p>
       <div class="clock">
         <div class="time"><span class="time">10:35</span><span class="meridian">AM</span></div>
         <div class="day">Monday</div>

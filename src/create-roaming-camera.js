@@ -2,7 +2,7 @@ const { createSpring } = require('spring-animator')
 const createCamera = require('3d-view-controls')
 const { getIntersection } = require('./helpers')
 
-module.exports = function createRoamingCamera (canvas, focus, center, eye, projection) {
+module.exports = function createRoamingCamera (canvas, focus, center, eye, getProjection) {
   let isRoaming = true
   let timeout
 
@@ -33,7 +33,7 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye, proje
       // prob not the best idea since elsewhere we are using `viewportWidth`
       // and `viewportHeight` passed by regl
       [0, 0, window.innerWidth, window.innerHeight],
-      projection,
+      getProjection(),
       camera.matrix
     )
     setSpringsToCurrentCameraValues()
