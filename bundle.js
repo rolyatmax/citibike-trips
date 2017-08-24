@@ -19045,6 +19045,36 @@ function createTurntableController(options) {
     phi)
 }
 },{"filtered-vector":16,"gl-mat4/invert":27,"gl-mat4/rotate":33,"gl-vec3/cross":73,"gl-vec3/dot":74,"gl-vec3/normalize":77}],109:[function(require,module,exports){
+module.exports = function checkSupport (regl) {
+  const data = new Float32Array(4)
+  data[0] = data[1] = data[2] = data[3] = 0.1234567
+  const initialTexture = regl.texture({
+    data: data,
+    shape: [1, 1, 4],
+    type: 'float'
+  })
+  try {
+    regl.framebuffer({
+      color: initialTexture,
+      depth: false,
+      stencil: false
+    })
+  } catch (err) {
+    notSupported()
+    throw new Error('visualization requires OES_texture_float webgl extension', err)
+  }
+}
+
+function notSupported () {
+  document.body.innerHTML = ''
+  const warningDiv = document.body.appendChild(document.createElement('div'))
+  warningDiv.classList.add('not-supported')
+  warningDiv.innerHTML = 'This sketch requires the `OES_texture_float` WebGL ' +
+    'extension and may not work on mobile browsers. But you can take a look at ' +
+    '<a href="https://vimeo.com/230861960">this little video</a> I made of it!'
+}
+
+},{}],110:[function(require,module,exports){
 module.exports = function createTimeline (container, settings) {
   const createBtnEl = () => document.createElement('span')
   const buttons = [
@@ -19086,7 +19116,7 @@ function createAndAppendButtonGroup (el, name) {
   return btnGroupEl
 }
 
-},{}],110:[function(require,module,exports){
+},{}],111:[function(require,module,exports){
 const { secondsToTime, getMeridian, convertHourFrom24H } = require('./helpers')
 
 module.exports = function createElapsedTimeView (el, trips) {
@@ -19094,7 +19124,7 @@ module.exports = function createElapsedTimeView (el, trips) {
   // is simply midnight of the day of the first trip in the list plus
   // elapsed time
   const firstTripStartDate = trips[0]['start_ts'].split(' ')[0]
-  const vizStartTime = (new Date(`${firstTripStartDate} 00:00:00`)).getTime()
+  const vizStartTime = (new Date(`${firstTripStartDate}T00:00:00`)).getTime()
 
   const timeEl = el.querySelector('span.time')
   const meridanEl = el.querySelector('span.meridian')
@@ -19114,7 +19144,7 @@ module.exports = function createElapsedTimeView (el, trips) {
 const days = 'Sunday Monday Tuesday Wednesday Thursday Friday Saturday Sunday'.split(' ')
 const months = 'January February March April May June July August September October November December'.split(' ')
 
-},{"./helpers":118}],111:[function(require,module,exports){
+},{"./helpers":119}],112:[function(require,module,exports){
 const glslify = require('glslify')
 
 module.exports = function createMapRenderer (regl, lines) {
@@ -19165,7 +19195,7 @@ module.exports = function createMapRenderer (regl, lines) {
   }
 }
 
-},{"glslify":81}],112:[function(require,module,exports){
+},{"glslify":81}],113:[function(require,module,exports){
 const mercator = require('projections/mercator')
 
 module.exports = function createProjection ({ bbox, zoom }) {
@@ -19179,12 +19209,12 @@ module.exports = function createProjection ({ bbox, zoom }) {
   }
 }
 
-},{"projections/mercator":98}],113:[function(require,module,exports){
+},{"projections/mercator":98}],114:[function(require,module,exports){
 const { createSpring } = require('spring-animator')
 const createCamera = require('3d-view-controls')
 const { getIntersection } = require('./helpers')
 
-module.exports = function createRoamingCamera (canvas, focus, center, eye, projection) {
+module.exports = function createRoamingCamera (canvas, focus, center, eye, getProjection) {
   let isRoaming = true
   let timeout
 
@@ -19215,7 +19245,7 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye, proje
       // prob not the best idea since elsewhere we are using `viewportWidth`
       // and `viewportHeight` passed by regl
       [0, 0, window.innerWidth, window.innerHeight],
-      projection,
+      getProjection(),
       camera.matrix
     )
     setSpringsToCurrentCameraValues()
@@ -19293,7 +19323,7 @@ module.exports = function createRoamingCamera (canvas, focus, center, eye, proje
   }
 }
 
-},{"./helpers":118,"3d-view-controls":1,"spring-animator":103}],114:[function(require,module,exports){
+},{"./helpers":119,"3d-view-controls":1,"spring-animator":103}],115:[function(require,module,exports){
 const glslify = require('glslify')
 const newArray = require('new-array')
 const { getIntersection } = require('./helpers')
@@ -19443,20 +19473,11 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
       shape: [textureSize, textureSize, 4],
       type: 'float'
     })
-
-    let fbuffer
-    try {
-      fbuffer = regl.framebuffer({
-        color: initialTexture,
-        depth: false,
-        stencil: false
-      })
-    } catch (err) {
-      // notSupported()
-      throw new Error(err)
-    }
-
-    return fbuffer
+    return regl.framebuffer({
+      color: initialTexture,
+      depth: false,
+      stencil: false
+    })
   }
 
   function cycleStates () {
@@ -19467,7 +19488,7 @@ module.exports = function createStateTransitioner (regl, trips, settings) {
   }
 }
 
-},{"./helpers":118,"glslify":81,"new-array":92}],115:[function(require,module,exports){
+},{"./helpers":119,"glslify":81,"new-array":92}],116:[function(require,module,exports){
 const catRomSpline = require('cat-rom-spline')
 const newArray = require('new-array')
 const { createSpring } = require('spring-animator')
@@ -19660,7 +19681,7 @@ function drawHistogram (svgEl, buckets) {
   return updateHistogram
 }
 
-},{"./helpers":118,"cat-rom-spline":9,"dom-css":14,"new-array":92,"spring-animator":103}],116:[function(require,module,exports){
+},{"./helpers":119,"cat-rom-spline":9,"dom-css":14,"new-array":92,"spring-animator":103}],117:[function(require,module,exports){
 const glslify = require('glslify')
 const vec2 = require('gl-vec2')
 const lerp = require('lerp')
@@ -19730,7 +19751,7 @@ module.exports = function createTripPathsRenderer (regl, points) {
   })
 }
 
-},{"./helpers":118,"gl-vec2":52,"glslify":81,"lerp":82}],117:[function(require,module,exports){
+},{"./helpers":119,"gl-vec2":52,"glslify":81,"lerp":82}],118:[function(require,module,exports){
 const glslify = require('glslify')
 const { getSeconds } = require('./helpers')
 
@@ -19754,7 +19775,7 @@ module.exports = function createTripPointsRenderer (regl, points) {
   })
 }
 
-},{"./helpers":118,"glslify":81}],118:[function(require,module,exports){
+},{"./helpers":119,"glslify":81}],119:[function(require,module,exports){
 const mat4 = require('gl-mat4')
 const intersect = require('ray-plane-intersection')
 const pickRay = require('camera-picking-ray')
@@ -19918,7 +19939,7 @@ function getIntersection (mouse, viewport, projection, view) {
   return intersect([], rayOrigin, rayDir, normal, distance)
 }
 
-},{"camera-picking-ray":5,"gl-mat4":26,"ray-plane-intersection":100}],119:[function(require,module,exports){
+},{"camera-picking-ray":5,"gl-mat4":26,"ray-plane-intersection":100}],120:[function(require,module,exports){
 /* global fetch */
 
 const createRegl = require('regl')
@@ -19934,6 +19955,7 @@ const createElapsedTimeView = require('./create-elapsed-time-view')
 const createTimeline = require('./create-timeline')
 const createButtons = require('./create-buttons')
 const createRoamingCamera = require('./create-roaming-camera')
+const checkSupport = require('./check-support')
 const setupDatGUI = require('./setup-dat-gui')
 const {
   extent,
@@ -19955,6 +19977,8 @@ const regl = createRegl({
   canvas: canvas
 })
 
+checkSupport(regl)
+
 window.addEventListener('resize', fit(canvas), false)
 
 const nycStreetsFile = './cleaned/nyc-streets'
@@ -19971,21 +19995,24 @@ Promise.all([
   const projectCoords = createProjection({ bbox: extent(coordinates), zoom: 1300 })
   const lines = coordinates.map(points => points.map(projectCoords))
 
-  const projection = mat4.perspective([],
+  const getProjection = () => mat4.perspective(
+    [],
     Math.PI / 4,
     window.innerWidth / window.innerHeight,
     0.01,
-    10)
+    10
+  )
   const focus = projectCoords([-74.006861, 40.724130]) // holland tunnel
   const [fX, fY] = focus
   const center = [fX - 0.15, fY + 0.15, -0.2] // i feel like these are misnamed in the 3d controls lib
   const eye = [fX, fY, 0] // i feel like these are misnamed in the 3d controls lib
-  const camera = createRoamingCamera(canvas, focus, center, eye, projection)
+  const camera = createRoamingCamera(canvas, focus, center, eye, getProjection)
 
   let settings = setupDatGUI({
     speed: [60 * 15, 1, 7000, 1],
     rayPickerThreshold: [0.05, 0.01, 0.1, 0.01],
-    startRoaming: camera.startRoaming
+    startRoaming: camera.startRoaming,
+    'start/stop': () => { paused = !paused }
   })
 
   settings = Object.assign(settings, {
@@ -20047,9 +20074,12 @@ Promise.all([
   removeLoader()
   appContainer.classList.remove('hidden')
   let lastTime = 0
+  let paused = false
   regl.frame(({ time }) => {
-    const timeDiff = (time - lastTime) * settings.speed
-    elapsed = (elapsed + timeDiff) % vizDuration
+    if (!paused) {
+      const timeDiff = (time - lastTime) * settings.speed
+      elapsed = (elapsed + timeDiff) % vizDuration
+    }
     lastTime = time
 
     regl.clear({
@@ -20062,7 +20092,7 @@ Promise.all([
     camera.tick(settings)
 
     stateTransitioner.tick(Object.assign({
-      projection: projection,
+      projection: getProjection(),
       view: view,
       viewport: [0, 0, window.innerWidth, window.innerHeight]
     }, settings))
@@ -20074,7 +20104,7 @@ Promise.all([
       elapsed: elapsed,
       center: camera.getCenter(),
       view: view,
-      projection: projection
+      projection: getProjection()
     }, () => {
       renderMap()
       drawTripPoints()
@@ -20088,7 +20118,7 @@ function removeLoader () {
   loader.parentElement.removeChild(loader)
 }
 
-},{"./create-buttons":109,"./create-elapsed-time-view":110,"./create-map-renderer":111,"./create-projection":112,"./create-roaming-camera":113,"./create-state-transitioner":114,"./create-timeline":115,"./create-trip-paths-renderer":116,"./create-trip-points-renderer":117,"./helpers":118,"./setup-dat-gui":120,"canvas-fit":8,"dom-css":14,"gl-mat4":26,"regl":101}],120:[function(require,module,exports){
+},{"./check-support":109,"./create-buttons":110,"./create-elapsed-time-view":111,"./create-map-renderer":112,"./create-projection":113,"./create-roaming-camera":114,"./create-state-transitioner":115,"./create-timeline":116,"./create-trip-paths-renderer":117,"./create-trip-points-renderer":118,"./helpers":119,"./setup-dat-gui":121,"canvas-fit":8,"dom-css":14,"gl-mat4":26,"regl":101}],121:[function(require,module,exports){
 const { GUI } = require('dat-gui')
 
 module.exports = function guiSettings (settings) {
@@ -20110,4 +20140,4 @@ module.exports = function guiSettings (settings) {
   return settingsObj
 }
 
-},{"dat-gui":11}]},{},[119]);
+},{"dat-gui":11}]},{},[120]);
