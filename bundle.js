@@ -19075,7 +19075,7 @@ function notSupported () {
 }
 
 },{}],110:[function(require,module,exports){
-module.exports = function createTimeline (container, settings) {
+module.exports = function createButtons (container, settings) {
   const createBtnEl = () => document.createElement('span')
   const buttons = [
     { name: 'showPoints', label: 'Points', group: 'view-options', el: createBtnEl() },
