@@ -24,6 +24,7 @@
     "geojson-bbox": "^0.0.0",
     "gl-mat4": "^1.1.4",
     "gl-vec2": "^1.0.0",
+    "glsl-fxaa": "^3.0.0",
     "glslify": "^6.1.0",
     "lerp": "^1.0.3",
     "new-array": "^1.0.0",

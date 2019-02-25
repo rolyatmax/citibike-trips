@@ -11,7 +11,8 @@ const createStateTransitioner = require('./create-state-transitioner')
 const createMapRenderer = require('./create-map-renderer')
 const createElapsedTimeView = require('./create-elapsed-time-view')
 const createTimeline = require('./create-timeline')
-const createButtons = require('./create-buttons')
+const createFxaaRenderer = require('./render-fxaa')
+// const createButtons = require('./create-buttons')
 const createRoamingCamera = require('./create-roaming-camera')
 const checkSupport = require('./check-support')
 const setupDatGUI = require('./setup-dat-gui')
@@ -31,11 +32,16 @@ css(document.body, 'background-color', rgba)
 const appContainer = document.querySelector('.app-container')
 const canvas = appContainer.querySelector('.visualization').appendChild(document.createElement('canvas'))
 const regl = createRegl({
-  extensions: 'OES_texture_float',
-  canvas: canvas
+  extensions: ['OES_texture_float', 'OES_standard_derivatives'],
+  canvas: canvas,
+  attributes: {
+    antialias: true
+  }
 })
 
 checkSupport(regl)
+
+const renderFxaa = createFxaaRenderer(regl)
 
 window.addEventListener('resize', fit(canvas), false)
 
@@ -64,12 +70,36 @@ Promise.all([
   const [fX, fY] = focus
   const center = [fX - 0.15, fY + 0.15, -0.2] // i feel like these are misnamed in the 3d controls lib
   const eye = [fX, fY, 0] // i feel like these are misnamed in the 3d controls lib
-  const camera = createRoamingCamera(canvas, focus, center, eye, getProjection)
+
+  const ACCEL = 0.0007
+  const FRICTION = 0.35
+
+  const camera = createRoamingCamera({
+    canvas,
+    zoomSpeed: 4,
+    center,
+    eye,
+    getCameraPosition: () => ([
+      fX + (Math.random() - 0.5) * 1.25,
+      fY + (Math.random() - 0.5) * 1.25,
+      Math.random() * -0.5
+    ]),
+    getCameraEye: () => ([
+      fX + (Math.random() - 0.5) * 0.2,
+      fY + (Math.random() - 0.5) * 0.2,
+      0
+    ]),
+    accel: ACCEL,
+    friction: FRICTION,
+    moveEveryNFrames: 600
+  })
 
   let settings = setupDatGUI({
-    speed: [60 * 15, 1, 7000, 1],
+    speed: [60 * 8, 1, 7000, 1],
     rayPickerThreshold: [0.05, 0.01, 0.1, 0.01],
     startRoaming: camera.startRoaming,
+    accel: [ACCEL, 0.0001, 0.001, 0.00005],
+    friction: [FRICTION, 0, 0.8, 0.01],
     'start/stop': () => { paused = !paused }
   })
 
@@ -86,7 +116,7 @@ Promise.all([
   const timelineEl = document.querySelector('.timeline')
   const renderTimeline = createTimeline(timelineEl, trips, vizDuration, setElapsed, settings)
   const renderElapsedTime = createElapsedTimeView(document.querySelector('.clock'), trips)
-  const renderButtons = createButtons(document.querySelector('.buttons'), settings)
+  // const renderButtons = createButtons(document.querySelector('.buttons'), settings)
 
   for (let j = 0; j < trips.length; j++) {
     const trip = trips[j]
@@ -133,21 +163,17 @@ Promise.all([
   appContainer.classList.remove('hidden')
   let lastTime = 0
   let paused = false
-  regl.frame(({ time }) => {
+  regl.frame((context) => {
+    const { time } = context
     if (!paused) {
       const timeDiff = (time - lastTime) * settings.speed
       elapsed = (elapsed + timeDiff) % vizDuration
     }
     lastTime = time
 
-    regl.clear({
-      color: BG_COLOR,
-      depth: 1
-    })
-
     const view = camera.getMatrix()
 
-    camera.tick(settings)
+    camera.tick(settings.accel, settings.friction)
 
     stateTransitioner.tick(Object.assign({
       projection: getProjection(),
@@ -155,19 +181,25 @@ Promise.all([
       viewport: [0, 0, window.innerWidth, window.innerHeight]
     }, settings))
 
-    renderButtons(settings)
+    // renderButtons(settings)
     renderTimeline(elapsed, settings)
     renderElapsedTime(elapsed)
-    globalRender({
-      elapsed: elapsed,
-      center: camera.getCenter(),
-      view: view,
-      projection: getProjection()
-    }, () => {
-      renderMap()
-      drawTripPoints()
-      drawTripPaths()
-    })
+    // renderFxaa(context, () => {
+      regl.clear({
+        color: BG_COLOR,
+        depth: 1
+      })
+      globalRender({
+        elapsed: elapsed,
+        center: camera.getCenter(),
+        view: view,
+        projection: getProjection()
+      }, () => {
+        renderMap()
+        drawTripPoints()
+        drawTripPaths()
+      })
+    // })
   })
 })
 

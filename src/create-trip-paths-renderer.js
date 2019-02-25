@@ -4,13 +4,14 @@ const lerp = require('lerp')
 const { getSeconds } = require('./helpers')
 
 module.exports = function createTripPathsRenderer (regl, points) {
-  const startColor = [235, 127, 0]
-  const endColor = [172, 240, 242]
+  const startColor = [235, 127, 0, 0.35]
+  const endColor = [172, 240, 242, 1]
   function getColor (t) {
     return [
       lerp(startColor[0], endColor[0], t) / 255,
       lerp(startColor[1], endColor[1], t) / 255,
-      lerp(startColor[2], endColor[2], t) / 255
+      lerp(startColor[2], endColor[2], t) / 255,
+      lerp(startColor[3], endColor[3], t)
     ]
   }
 
@@ -30,7 +31,7 @@ module.exports = function createTripPathsRenderer (regl, points) {
   const linesDurations = []
   const linesTripStateIndex = []
   points.forEach(p => {
-    const arcPoints = 25
+    const arcPoints = 50
     const startTime = getSeconds(p.start_ts)
     for (let j = 0; j < arcPoints; j++) {
       linesPoints.push(getPosition(p.startPosition, p.endPosition, j / arcPoints))

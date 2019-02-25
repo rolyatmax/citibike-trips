@@ -1,5 +1,5 @@
 attribute vec3 position;
-attribute vec3 color;
+attribute vec4 color;
 attribute float startTime;
 attribute float duration;
 attribute vec2 tripStateIndex;
@@ -27,13 +27,13 @@ void main() {
   }
   float w = 1.0;
   discardMe = 0.0;
-  float alpha = t / 1.3 * pathAlpha;
+  float alpha = t / 1.3 * pathAlpha * 0.6;
   if (t == 0.0) {
     w = 0.0;
     discardMe = 1.0;
     alpha = 0.0;
   }
   float z = position.z * arcHeight;
-  fragColor = vec4(color.rgb, alpha);
+  fragColor = vec4(color.rgb, color.a * alpha);
   gl_Position = projection * view * vec4(position.xy, z, w);
 }

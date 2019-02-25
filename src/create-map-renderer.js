@@ -17,7 +17,7 @@ module.exports = function createMapRenderer (regl, lines) {
     },
     count: lineSegments.length,
     uniforms: {
-      color: [0.75, 0.75, 0.75]
+      color: [0.35, 0.35, 0.35]
     },
     primitive: 'lines'
   })

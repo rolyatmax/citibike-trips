@@ -14,7 +14,7 @@ module.exports = function checkSupport (regl) {
     })
   } catch (err) {
     notSupported()
-    throw new Error('visualization requires OES_texture_float webgl extension', err)
+    throw new Error('visualization requires OES_texture_float and OES_standard_derivatives webgl extensions', err)
   }
 }
 
