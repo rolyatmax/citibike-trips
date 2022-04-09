@@ -39,7 +39,7 @@ checkSupport(regl)
 
 window.addEventListener('resize', fit(canvas), false)
 
-const nycStreetsFile = './cleaned/nyc-streets'
+const nycStreetsFile = './cleaned/nyc-streets.txt'
 const tripsFile = './cleaned/trips-2017-06-09.csv'
 const stationsFile = './cleaned/stations.csv'
 
